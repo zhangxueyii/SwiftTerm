@@ -1457,6 +1457,12 @@ open class TerminalView: UIScrollView, UITextInputTraits, UIKeyInput, UIScrollVi
         }
     }
 
+    public override func resetToInitialState() {
+        terminal.resetToInitialState()
+        userScrolling = false
+        updateScroller()
+    }
+
     func getCurrentGraphicsContext () -> CGContext?
     {
         UIGraphicsGetCurrentContext ()

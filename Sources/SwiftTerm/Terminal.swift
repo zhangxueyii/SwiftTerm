@@ -5101,6 +5101,7 @@ open class Terminal {
         cursorHidden = savedCursorHidden
         refresh (startRow: 0, endRow: rows-1)
         syncScrollArea ()
+        userScrolling = false
     }
 
     // Support for:
