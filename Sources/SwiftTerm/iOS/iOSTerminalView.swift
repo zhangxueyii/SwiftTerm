@@ -307,6 +307,7 @@ open class TerminalView: UIScrollView, UITextInputTraits, UIKeyInput, UIScrollVi
     {
         showsHorizontalScrollIndicator = true
         indicatorStyle = .white
+        self.delegate = self
         
         setupKeyboardButtonColors()
         setupDisplayUpdates ();
@@ -977,6 +978,7 @@ open class TerminalView: UIScrollView, UITextInputTraits, UIKeyInput, UIScrollVi
             return
         }
         let gesture = UIPanGestureRecognizer (target: self, action: #selector(panMouseHandler))
+        gesture.require(toFail: panGestureRecognizer)
         addGestureRecognizer(gesture)
         panMouseGesture = gesture
     }
@@ -1349,8 +1351,19 @@ open class TerminalView: UIScrollView, UITextInputTraits, UIKeyInput, UIScrollVi
     }
 
     open func scrolled(source terminal: Terminal, yDisp: Int) {
-        //XselectionView.notifyScrolled(source: terminal)
-        updateScroller()
+        if !userScrolling {
+            updateScroller()
+        } else {
+            let displayBuffer = terminal.displayBuffer
+            contentSize = CGSize(width: CGFloat(displayBuffer.cols) * cellDimension.width,
+                                 height: CGFloat(displayBuffer.lines.count) * cellDimension.height)
+            let maxOffset = max(0, contentSize.height - bounds.height)
+            if contentOffset.y > maxOffset {
+                userScrolling = false
+                terminal.userScrolling = false
+                updateScroller()
+            }
+        }
         terminalDelegate?.scrolled(source: self, position: scrollPosition)
     }
     
@@ -1367,10 +1380,7 @@ open class TerminalView: UIScrollView, UITextInputTraits, UIKeyInput, UIScrollVi
         let displayBuffer = terminal.displayBuffer
         contentSize = CGSize (width: CGFloat (displayBuffer.cols) * cellDimension.width,
                               height: CGFloat (displayBuffer.lines.count) * cellDimension.height)
-        //contentOffset = CGPoint (x: 0, y: CGFloat (displayBuffer.lines.count-displayBuffer.rows)*cellDimension.height)
         contentOffset = CGPoint (x: 0, y: CGFloat (displayBuffer.lines.count-displayBuffer.rows)*cellDimension.height)
-        //Xscroller.doubleValue = scrollPosition
-        //Xscroller.knobProportion = scrollThumbsize
     }
 
 #if canImport(MetalKit)
@@ -1393,6 +1403,43 @@ open class TerminalView: UIScrollView, UITextInputTraits, UIKeyInput, UIScrollVi
 #endif
     
     var userScrolling = false
+
+    open func scrollViewWillBeginDragging(_ scrollView: UIScrollView) {
+        log.info("scroll.willBeginDrag offset=\(self.contentOffset.y) contentSize=\(self.contentSize.height) bounds=\(self.bounds.height)")
+        userScrolling = true
+        terminal.userScrolling = true
+    }
+
+    open func scrollViewDidEndDragging(_ scrollView: UIScrollView, willDecelerate decelerate: Bool) {
+        log.info("scroll.didEndDrag decelerate=\(decelerate) offset=\(self.contentOffset.y) maxOffset=\(max(0, self.contentSize.height - self.bounds.height))")
+        if !decelerate {
+            checkScrollPosition()
+        }
+    }
+
+    open func scrollViewDidEndDecelerating(_ scrollView: UIScrollView) {
+        log.info("scroll.didEndDecel offset=\(self.contentOffset.y) maxOffset=\(max(0, self.contentSize.height - self.bounds.height))")
+        checkScrollPosition()
+    }
+
+    open func scrollViewDidScroll(_ scrollView: UIScrollView) {
+        guard userScrolling, contentSize.height > 0 else { return }
+        let maxOffset = max(0, contentSize.height - bounds.height)
+        log.info("scroll.didScroll offset=\(self.contentOffset.y) maxOffset=\(maxOffset) userScrolling=\(self.userScrolling)")
+        if contentOffset.y >= maxOffset - 0.5 {
+            log.info("scroll.reachedBottom")
+            userScrolling = false
+            terminal.userScrolling = false
+        }
+    }
+
+    private func checkScrollPosition() {
+        let maxOffset = max(0, contentSize.height - bounds.height)
+        log.info("scroll.checkPos offset=\(self.contentOffset.y) maxOffset=\(maxOffset) userScrolling=\(self.userScrolling)")
+        userScrolling = false
+        terminal.userScrolling = false
+        updateScroller()
+    }
 
     func getCurrentGraphicsContext () -> CGContext?
     {
