@@ -1450,9 +1450,11 @@ open class TerminalView: UIScrollView, UITextInputTraits, UIKeyInput, UIScrollVi
     private func checkScrollPosition() {
         let maxOffset = max(0, contentSize.height - bounds.height)
         log.info("scroll.checkPos offset=\(self.contentOffset.y) maxOffset=\(maxOffset) userScrolling=\(self.userScrolling)")
-        userScrolling = false
-        terminal.userScrolling = false
-        updateScroller()
+        if contentOffset.y >= maxOffset - 0.5 {
+            userScrolling = false
+            terminal.userScrolling = false
+            updateScroller()
+        }
     }
 
     func getCurrentGraphicsContext () -> CGContext?
