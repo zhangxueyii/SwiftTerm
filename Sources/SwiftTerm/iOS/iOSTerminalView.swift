@@ -51,7 +51,7 @@ public extension Notification.Name {
  * Use the `configureNativeColors()` to set the defaults colors for the view to match the OS
  * defaults, otherwise, this uses its own set of defaults colors.
  */
-open class TerminalView: UIScrollView, UITextInputTraits, UIKeyInput, UIScrollViewDelegate, TerminalDelegate, UIPointerInteractionDelegate {
+open class TerminalView: UIScrollView, UITextInputTraits, UIKeyInput, UIScrollViewDelegate, TerminalDelegate, UIPointerInteractionDelegate, UIGestureRecognizerDelegate {
     public static var textInputDebugEnabled: Bool = ProcessInfo.processInfo.environment["SWIFTTERM_TEXT_INPUT_DEBUG"] == "1"
     internal static var textInputLogCounter: Int = 0
 
@@ -978,9 +978,23 @@ open class TerminalView: UIScrollView, UITextInputTraits, UIKeyInput, UIScrollVi
             return
         }
         let gesture = UIPanGestureRecognizer (target: self, action: #selector(panMouseHandler))
-        gesture.require(toFail: panGestureRecognizer)
+        gesture.delegate = self
         addGestureRecognizer(gesture)
         panMouseGesture = gesture
+    }
+    
+    // When there is scrollback content and the user is not at the bottom,
+    // the mouse pan gesture must wait for the UIScrollView pan to fail,
+    // so scrollback browsing takes priority.  At the bottom or in the alt
+    // buffer (content fits, maxOffset ≈ 0) the mouse gesture fires
+    // immediately and sends mouse events to the terminal.
+    public func gestureRecognizer(_ gestureRecognizer: UIGestureRecognizer,
+                                  shouldBeRequiredToFailBy otherGestureRecognizer: UIGestureRecognizer) -> Bool
+    {
+        guard gestureRecognizer === panMouseGesture,
+              otherGestureRecognizer === panGestureRecognizer else { return false }
+        let maxOffset = max(0, contentSize.height - bounds.height)
+        return maxOffset > 0 && contentOffset.y < maxOffset - 0.5
     }
     
     func disableMousePanGesture () {
