@@ -10,6 +10,18 @@
 
 import Foundation
 
+#if DEBUG
+enum SyncDebug {
+    static func log(_ message: @autoclosure () -> String) {
+        NSLog("[SyncDebug] \(message())")
+    }
+}
+#else
+enum SyncDebug {
+    @inlinable static func log(_ message: @autoclosure () -> String) {}
+}
+#endif
+
 /**
  * The terminal delegate is a protocol that must be implemented by a class
  * that would provide a user interface for the terminal, and it is used by the
@@ -5187,6 +5199,7 @@ open class Terminal {
         cursorHidden = savedCursorHidden
         refresh (startRow: 0, endRow: rows-1)
         syncScrollArea ()
+        userScrolling = false
     }
 
     // Support for:

@@ -782,22 +782,21 @@ open class TerminalView: UIScrollView, UITextInputTraits, UIKeyInput, UIScrollVi
 
         if allowMouseReporting && !shiftBypassesMouseReporting(for: gestureRecognizer) && terminal.mouseMode.sendButtonPress() {
             sharedMouseEvent(gestureRecognizer: gestureRecognizer, release: false)
-            
+
             if terminal.mouseMode.sendButtonRelease() {
                 sharedMouseEvent(gestureRecognizer: gestureRecognizer, release: true)
             }
             return
         } else {
             let hit = calculateTapHit(gesture: gestureRecognizer).grid
-            selection.selectWordOrExpression(at: hit, in: terminal.displayBuffer)
-            selection.selectionMode = .character
+            selection.select(row: hit.row)
             enableSelectionPanGesture()
             showContextMenu (forRegion: makeContextMenuRegionForSelection(), pos: hit)
             queuePendingDisplay()
         }
     }
 
-    @objc func tripleTap (_ gestureRecognizer: UITapGestureRecognizer)
+    @objc func doubleTap (_ gestureRecognizer: UITapGestureRecognizer)
     {
         guard gestureRecognizer.view != nil else { return }
 
