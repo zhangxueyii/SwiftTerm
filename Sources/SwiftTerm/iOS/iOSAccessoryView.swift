@@ -23,10 +23,18 @@ public class TerminalAccessory: UIInputView, UIInputViewAudioFeedback {
     public weak var terminalView: TerminalView?
     weak var terminal: Terminal?
     var controlButton: UIButton?
+    var altButton: UIButton?
     /// This tracks whether the "control" button is turned on or not
     public var controlModifier: Bool = false {
         didSet {
             controlButton?.isSelected = controlModifier
+        }
+    }
+
+    /// This tracks whether the "alt" button is turned on or not
+    public var altModifier: Bool = false {
+        didSet {
+            altButton?.isSelected = altModifier
         }
     }
     
@@ -78,6 +86,7 @@ public class TerminalAccessory: UIInputView, UIInputViewAudioFeedback {
     @objc func tab (_ sender: AnyObject) { clickAndSend ([0x9]) }
     @objc func tilde (_ sender: AnyObject) { clickAndInsertText ("~") }
     @objc func pipe (_ sender: AnyObject) { clickAndInsertText ("|") }
+    @objc func colon (_ sender: AnyObject) { clickAndInsertText (":") }
     @objc func slash (_ sender: AnyObject) { clickAndInsertText ("/") }
     @objc func dash (_ sender: AnyObject) { clickAndInsertText ("-") }
     @objc func f1 (_ sender: AnyObject) { clickAndSend (EscapeSequences.cmdF[0]) }
@@ -95,6 +104,13 @@ public class TerminalAccessory: UIInputView, UIInputViewAudioFeedback {
     func ctrl (_ sender: UIButton)
     {
         controlModifier.toggle()
+    }
+
+    @objc
+    func alt (_ sender: UIButton)
+    {
+        altModifier.toggle()
+        terminalView?.metaModifier = altModifier
     }
 
     // Controls the timer for auto-repeat
@@ -148,6 +164,9 @@ public class TerminalAccessory: UIInputView, UIInputViewAudioFeedback {
 
 
     @objc func toggleInputKeyboard (_ sender: UIButton) {
+        #if os(iOS)
+        UIDevice.current.playInputClick()
+        #endif
         guard let tv = terminalView else { return }
 
         if tv.inputView == nil {
@@ -200,12 +219,18 @@ public class TerminalAccessory: UIInputView, UIInputViewAudioFeedback {
             let controlButton = makeButton("", #selector(ctrl), icon: "control", isNormal: false)
             leftViews.append(controlButton)
             self.controlButton = controlButton
+            let altButton = makeButton("", #selector(alt), icon: "option", isNormal: false)
+            leftViews.append(altButton)
+            self.altButton = altButton
             leftViews.append(makeButton("", #selector(tab), icon: "arrow.right.to.line.compact"))
         } else {
             leftViews.append(makeButton ("esc", #selector(esc), isNormal: false))
             let controlButton = makeButton ("ctrl", #selector(ctrl), isNormal: false)
             leftViews.append(controlButton)
             self.controlButton = controlButton
+            let altButton = makeButton ("alt", #selector(alt), isNormal: false)
+            leftViews.append(altButton)
+            self.altButton = altButton
             leftViews.append(makeButton("", #selector(tab), icon: "arrow.right.to.line.compact", isNormal: false))
             //leftViews.append(makeButton ("tab", #selector(tab)))
         }
@@ -222,7 +247,7 @@ public class TerminalAccessory: UIInputView, UIInputViewAudioFeedback {
         // calculate aditional space we can give to keys we want to be bigger (all top level except function keys)
         let minWidth: CGFloat = useSmall ? 20.0 : (UIDevice.current.userInterfaceIdiom == .phone) ? 22 : 32
         let maxFuncKeyWidth = (minWidth + buttonPad) * 10
-        let importantKeysCount: Double = useSmall ? 11 : 13
+        let importantKeysCount: Double = useSmall ? 12 : 14
         let maxSpaceForImportantKeys = frame.width - maxFuncKeyWidth - buttonPad
         var aditionalSpaceForImportantKeys: CGFloat = 0
         if maxSpaceForImportantKeys > 0 {
@@ -258,6 +283,7 @@ public class TerminalAccessory: UIInputView, UIInputViewAudioFeedback {
             floatViews.append (makeDouble ("/", "-"))
         } else {
             floatViews.append(makeButton ("~", #selector(tilde)))
+            floatViews.append(makeButton (":", #selector(colon)))
             floatViews.append(makeButton ("|", #selector(pipe)))
             floatViews.append(makeButton ("/", #selector(slash)))
             floatViews.append(makeButton ("-", #selector(dash)))
