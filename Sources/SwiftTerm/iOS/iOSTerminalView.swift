@@ -796,6 +796,30 @@ open class TerminalView: UIScrollView, UITextInputTraits, UIKeyInput, UIScrollVi
         }
     }
     
+    @objc func tripleTap (_ gestureRecognizer: UITapGestureRecognizer)
+    {
+        guard gestureRecognizer.view != nil else { return }
+
+        if gestureRecognizer.state != .ended {
+            return
+        }
+
+        if allowMouseReporting && !shiftBypassesMouseReporting(for: gestureRecognizer) && terminal.mouseMode.sendButtonPress() {
+            sharedMouseEvent(gestureRecognizer: gestureRecognizer, release: false)
+
+            if terminal.mouseMode.sendButtonRelease() {
+                sharedMouseEvent(gestureRecognizer: gestureRecognizer, release: true)
+            }
+            return
+        } else {
+            let hit = calculateTapHit(gesture: gestureRecognizer).grid
+            selection.select(row: hit.row)
+            enableSelectionPanGesture()
+            showContextMenu (forRegion: makeContextMenuRegionForSelection(), pos: hit)
+            queuePendingDisplay()
+        }
+    }
+
     var directionView: UIView?
     var directionCount: Int = 0
     var lastCursorImage: String? = nil
