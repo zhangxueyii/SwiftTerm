@@ -25,6 +25,13 @@ import MetalKit
 @available(iOS 14.0, *)
 internal var log: Logger = Logger(subsystem: "org.tirania.SwiftTerm", category: "msg")
 
+private let logFmt: DateFormatter = {
+    let f = DateFormatter()
+    f.dateFormat = "HH:mm:ss.SSS"
+    return f
+}()
+private var ts: String { logFmt.string(from: Date()) }
+
 public extension Notification.Name {
     /// Posted when TerminalView's controlModifier is reset to false
     static let terminalViewControlModifierReset = Notification.Name("SwiftTerm.TerminalView.controlModifierReset")
@@ -681,8 +688,10 @@ open class TerminalView: UIScrollView, UITextInputTraits, UIKeyInput, UIScrollVi
             button: 1,
             release: release,
             shift: false,
-            meta: false,
+            meta: terminalAccessory?.altModifier ?? metaModifier,
             control: terminalAccessory?.controlModifier ?? controlModifier ?? false)
+        terminalAccessory?.altModifier = false
+        metaModifier = false
         terminalAccessory?.controlModifier = false
         controlModifier = false
         return encodedFlags
@@ -893,26 +902,73 @@ open class TerminalView: UIScrollView, UITextInputTraits, UIKeyInput, UIScrollVi
     @objc func panMouseHandler (_ gestureRecognizer: UIPanGestureRecognizer){
         guard gestureRecognizer.view != nil else { return }
         if allowMouseReporting && !shiftBypassesMouseReporting(for: gestureRecognizer) && terminal.mouseMode != .off {
-            switch gestureRecognizer.state {
-            case .began:
-                // send the initial tap
-                if terminal.mouseMode.sendButtonPress() {
-                    sharedMouseEvent(gestureRecognizer: gestureRecognizer, release: false)
-                }
-            case .ended, .cancelled:
-                if terminal.mouseMode.sendButtonRelease() {
-                    sharedMouseEvent(gestureRecognizer: gestureRecognizer, release: true)
-                }
-            case .changed:
-                if terminal.mouseMode.sendButtonTracking() {
-                    let hit = calculateTapHit(gesture: gestureRecognizer)
-                    if let grid = hit.grid.toScreenCoordinate(from: terminal.displayBuffer) {
-                        terminal.sendMotion(buttonFlags: encodeFlags(release: false), x: grid.col, y: grid.row, pixelX: hit.pixels.col, pixelY: hit.pixels.row)
+            if terminal.isDisplayBufferAlternate {
+                handleAltBufferPan(gestureRecognizer)
+            } else {
+                switch gestureRecognizer.state {
+                case .began:
+                    if terminal.mouseMode.sendButtonPress() {
+                        sharedMouseEvent(gestureRecognizer: gestureRecognizer, release: false)
                     }
+                case .ended, .cancelled:
+                    if terminal.mouseMode.sendButtonRelease() {
+                        sharedMouseEvent(gestureRecognizer: gestureRecognizer, release: true)
+                    }
+                case .changed:
+                    if terminal.mouseMode.sendButtonTracking() {
+                        let hit = calculateTapHit(gesture: gestureRecognizer)
+                        if let grid = hit.grid.toScreenCoordinate(from: terminal.displayBuffer) {
+                            terminal.sendMotion(buttonFlags: encodeFlags(release: false), x: grid.col, y: grid.row, pixelX: hit.pixels.col, pixelY: hit.pixels.row)
+                        }
+                    }
+                case .ended, .cancelled:
+                    if terminal.mouseMode.sendButtonRelease() {
+                        sharedMouseEvent(gestureRecognizer: gestureRecognizer, release: true)
+                    }
+                case .changed:
+                    if terminal.mouseMode.sendButtonTracking() {
+                        let hit = calculateTapHit(gesture: gestureRecognizer)
+                        if let grid = hit.grid.toScreenCoordinate(from: terminal.displayBuffer) {
+                            terminal.sendMotion(buttonFlags: encodeFlags(release: false), x: grid.col, y: grid.row, pixelX: hit.pixels.col, pixelY: hit.pixels.row)
+                        }
+                    }
+                default:
+                    break
                 }
-            default:
-                break
             }
+        }
+    }
+
+    var altBufferPanAccumulator: CGFloat = 0
+
+    func handleAltBufferPan(_ gestureRecognizer: UIPanGestureRecognizer) {
+        let threshold: CGFloat = cellDimension.height
+
+        switch gestureRecognizer.state {
+        case .changed:
+            let deltaY = gestureRecognizer.translation(in: self).y
+            gestureRecognizer.setTranslation(.zero, in: self)
+
+            altBufferPanAccumulator += deltaY
+
+            while altBufferPanAccumulator < -threshold {
+                log.debug("[\(ts, privacy: .public)] handleAltBufferPan: sending pageUp")
+                pageUp()
+                altBufferPanAccumulator += threshold
+            }
+            while altBufferPanAccumulator > threshold {
+                log.debug("[\(ts, privacy: .public)] handleAltBufferPan: sending pageDown")
+                pageDown()
+                altBufferPanAccumulator -= threshold
+            }
+
+        case .ended, .cancelled:
+            if altBufferPanAccumulator != 0 {
+                log.debug("[\(ts, privacy: .public)] handleAltBufferPan: ended/cancelled, reset accumulator")
+            }
+            altBufferPanAccumulator = 0
+        default:
+            break
         }
     }
    
@@ -1338,6 +1394,7 @@ open class TerminalView: UIScrollView, UITextInputTraits, UIKeyInput, UIScrollVi
     var lineLeading: CGFloat = 0
     
     open func bufferActivated(source: Terminal) {
+        log.debug("[\(ts, privacy: .public)] bufferActivated: alternate=\(source.isDisplayBufferAlternate, privacy: .public)")
         updateScroller ()
     }
     
@@ -1456,6 +1513,51 @@ open class TerminalView: UIScrollView, UITextInputTraits, UIKeyInput, UIScrollVi
 #endif
     
     var userScrolling = false
+
+    open func scrollViewWillBeginDragging(_ scrollView: UIScrollView) {
+        log.info("[\(ts, privacy: .public)] scroll.willBeginDrag offset=\(self.contentOffset.y) contentSize=\(self.contentSize.height) bounds=\(self.bounds.height)")
+        userScrolling = true
+        terminal.userScrolling = true
+    }
+
+    open func scrollViewDidEndDragging(_ scrollView: UIScrollView, willDecelerate decelerate: Bool) {
+        log.info("[\(ts, privacy: .public)] scroll.didEndDrag decelerate=\(decelerate) offset=\(self.contentOffset.y) maxOffset=\(max(0, self.contentSize.height - self.bounds.height))")
+        if !decelerate {
+            checkScrollPosition()
+        }
+    }
+
+    open func scrollViewDidEndDecelerating(_ scrollView: UIScrollView) {
+        log.info("[\(ts, privacy: .public)] scroll.didEndDecel offset=\(self.contentOffset.y) maxOffset=\(max(0, self.contentSize.height - self.bounds.height))")
+        checkScrollPosition()
+    }
+
+    open func scrollViewDidScroll(_ scrollView: UIScrollView) {
+        guard userScrolling, contentSize.height > 0 else { return }
+        let maxOffset = max(0, contentSize.height - bounds.height)
+        log.info("[\(ts, privacy: .public)] scroll.didScroll offset=\(self.contentOffset.y) maxOffset=\(maxOffset) userScrolling=\(self.userScrolling)")
+        if contentOffset.y >= maxOffset - 0.5 {
+            log.info("[\(ts, privacy: .public)] scroll.reachedBottom")
+            userScrolling = false
+            terminal.userScrolling = false
+        }
+    }
+
+    private func checkScrollPosition() {
+        let maxOffset = max(0, contentSize.height - bounds.height)
+        log.info("[\(ts, privacy: .public)] scroll.checkPos offset=\(self.contentOffset.y) maxOffset=\(maxOffset) userScrolling=\(self.userScrolling)")
+        if contentOffset.y >= maxOffset - 0.5 {
+            userScrolling = false
+            terminal.userScrolling = false
+            updateScroller()
+        }
+    }
+
+    public func resetToInitialState() {
+        terminal.resetToInitialState()
+        userScrolling = false
+        updateScroller()
+    }
 
     func getCurrentGraphicsContext () -> CGContext?
     {
@@ -1698,9 +1800,10 @@ open class TerminalView: UIScrollView, UITextInputTraits, UIKeyInput, UIScrollVi
             self.send(applyControlToEventCharacters(textToInsert))
             terminalAccessory?.controlModifier = false
             controlModifier = false
-        } else if applyModifiers && metaModifier {
+        } else if applyModifiers && (terminalAccessory?.altModifier ?? metaModifier) {
             self.send([0x1b])
             self.send(txt: text)
+            terminalAccessory?.altModifier = false
             metaModifier = false
         } else {
             if textToInsert == "\n" {
@@ -2038,12 +2141,13 @@ open class TerminalView: UIScrollView, UITextInputTraits, UIKeyInput, UIScrollVi
     private func sendKittyTextInput(_ text: String, applyModifiers: Bool) {
         let flags = terminal.keyboardEnhancementFlags
         let controlActive = applyModifiers && (terminalAccessory?.controlModifier ?? controlModifier ?? false)
-        let metaActive = applyModifiers && metaModifier
+        let metaActive = applyModifiers && (terminalAccessory?.altModifier ?? metaModifier)
         if controlActive {
             terminalAccessory?.controlModifier = false
             controlModifier = false
         }
         if metaActive {
+            terminalAccessory?.altModifier = false
             metaModifier = false
         }
         let pendingEvent = pendingKittyKeyEvent
@@ -2509,11 +2613,14 @@ open class TerminalView: UIScrollView, UITextInputTraits, UIKeyInput, UIScrollVi
             default:
                 if key.modifierFlags.contains ([.alternate, .command]) && key.charactersIgnoringModifiers == "o" {
                     optionAsMetaKey.toggle()
-                } else if (key.modifierFlags.contains (.alternate) && optionAsMetaKey) || metaModifier {
+                } else if (key.modifierFlags.contains (.alternate) && optionAsMetaKey) || metaModifier || (terminalAccessory?.altModifier ?? false) {
                     data = .text("\u{1b}\(key.charactersIgnoringModifiers)")
+                    terminalAccessory?.altModifier = false
                     metaModifier = false
-                } else if key.modifierFlags.contains (.control) {
+                } else if key.modifierFlags.contains (.control) || (terminalAccessory?.controlModifier ?? false) {
                     let controlBytes = applyControlToEventCharacters(key.charactersIgnoringModifiers)
+                    terminalAccessory?.controlModifier = false
+                    controlModifier = false
                     if !controlBytes.isEmpty {
                         data = .bytes(controlBytes)
                     }
@@ -2696,6 +2803,7 @@ open class TerminalView: UIScrollView, UITextInputTraits, UIKeyInput, UIScrollVi
     }
     
     open func mouseModeChanged(source: Terminal) {
+        log.debug("[\(ts, privacy: .public)] mouseModeChanged: \(String(describing: source.mouseMode), privacy: .public)")
         if source.mouseMode != .off {
             enableMousePanGesture()
         } else {
