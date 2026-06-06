@@ -230,10 +230,12 @@ public class TerminalAccessory: UIInputView, UIInputViewAudioFeedback {
         stack.axis = .horizontal
         stack.spacing = 2
         stack.alignment = .center
-        stack.distribution = .fillProportionally
+        stack.distribution = .fill
         
+        let buttonWidth = CGFloat(UserDefaults.standard.object(forKey: "accessory_button_width") as? Double ?? 30)
         for keyId in keyOrder {
             if let button = buildButton(for: keyId) {
+                button.widthAnchor.constraint(equalToConstant: buttonWidth).isActive = true
                 stack.addArrangedSubview(button)
                 views.append(button)
             }
