@@ -258,17 +258,17 @@ public class TerminalAccessory: UIInputView, UIInputViewAudioFeedback {
     func buildButton(for keyId: String) -> UIView? {
         switch keyId {
         case "esc":
-            return makeButton("esc", #selector(esc), isNormal: false)
+            return makeButton("⎋", #selector(esc), isNormal: false)
         case "ctrl":
-            let b = makeButton("ctrl", #selector(ctrl), isNormal: false)
+            let b = makeButton("^", #selector(ctrl), isNormal: false)
             controlButton = b
             return b
         case "alt":
-            let b = makeButton("alt", #selector(alt), isNormal: false)
+            let b = makeButton("⌥", #selector(alt), isNormal: false)
             altButton = b
             return b
         case "tab":
-            return makeButton("", #selector(tab), icon: "arrow.right.to.line.compact", isNormal: false)
+            return makeButton("⇥", #selector(tab), isNormal: false)
         case "tilde":
             return makeButton("~", #selector(tilde))
         case "colon":
