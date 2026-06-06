@@ -280,13 +280,13 @@ public class TerminalAccessory: UIInputView, UIInputViewAudioFeedback {
         case "dash":
             return makeButton("-", #selector(dash))
         case "arrowLeft":
-            return makeAutoRepeatButton("arrow.left", #selector(left))
+            return makeAutoRepeatButton("arrow.left", #selector(left), pointSize: 11)
         case "arrowDown":
-            return makeAutoRepeatButton("arrow.down", #selector(down))
+            return makeAutoRepeatButton("arrow.down", #selector(down), pointSize: 11)
         case "arrowUp":
-            return makeAutoRepeatButton("arrow.up", #selector(up))
+            return makeAutoRepeatButton("arrow.up", #selector(up), pointSize: 11)
         case "arrowRight":
-            return makeAutoRepeatButton("arrow.right", #selector(right))
+            return makeAutoRepeatButton("arrow.right", #selector(right), pointSize: 11)
         case "touch":
             let b = makeButton("", #selector(toggleTouch), icon: "hand.draw", isNormal: false)
             b.isSelected = terminalView?.allowMouseReporting ?? false
@@ -329,16 +329,16 @@ public class TerminalAccessory: UIInputView, UIInputViewAudioFeedback {
         super.layoutSubviews()
     }
     
-    func makeAutoRepeatButton (_ iconName: String, _ action: Selector) -> UIButton
+    func makeAutoRepeatButton (_ iconName: String, _ action: Selector, pointSize: CGFloat = 12) -> UIButton
     {
-        let b = makeButton ("", action, icon: iconName)
+        let b = makeButton ("", action, icon: iconName, iconPointSize: pointSize)
         b.addTarget(self, action: #selector(cancelTimer), for: .touchUpOutside)
         b.addTarget(self, action: #selector(cancelTimer), for: .touchCancel)
         b.addTarget(self, action: #selector(cancelTimer), for: .touchUpInside)
         return b
     }
     
-    func makeButton (_ title: String, _ action: Selector, icon: String = "", isNormal: Bool = true) -> UIButton
+    func makeButton (_ title: String, _ action: Selector, icon: String = "", isNormal: Bool = true, iconPointSize: CGFloat = 12) -> UIButton
     {
         let useSmall = self._useSmall
         let b = BackgroundSelectedButton.init(type: .roundedRect)
@@ -357,7 +357,7 @@ public class TerminalAccessory: UIInputView, UIInputViewAudioFeedback {
         b.backgroundColor = isNormal ? terminalView.buttonBackgroundColor : terminalView.buttonDarkBackgroundColor
         
         if icon != "" {
-            if let img = UIImage (systemName: icon, withConfiguration: UIImage.SymbolConfiguration (pointSize: 12.0)) {
+            if let img = UIImage (systemName: icon, withConfiguration: UIImage.SymbolConfiguration (pointSize: iconPointSize)) {
                 b.setImage(img.withTintColor(terminalView.buttonColor, renderingMode: .alwaysOriginal), for: .normal)
             }
         }
