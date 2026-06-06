@@ -280,13 +280,13 @@ public class TerminalAccessory: UIInputView, UIInputViewAudioFeedback {
         case "dash":
             return makeButton("-", #selector(dash))
         case "arrowLeft":
-            return makeAutoRepeatButton("arrow.left", #selector(left), pointSize: 11)
+            return makeAutoRepeatButton("arrow.left", #selector(left))
         case "arrowDown":
-            return makeAutoRepeatButton("arrow.down", #selector(down), pointSize: 11)
+            return makeAutoRepeatButton("arrow.down", #selector(down))
         case "arrowUp":
-            return makeAutoRepeatButton("arrow.up", #selector(up), pointSize: 11)
+            return makeAutoRepeatButton("arrow.up", #selector(up))
         case "arrowRight":
-            return makeAutoRepeatButton("arrow.right", #selector(right), pointSize: 11)
+            return makeAutoRepeatButton("arrow.right", #selector(right))
         case "touch":
             let b = makeButton("", #selector(toggleTouch), icon: "hand.draw", isNormal: false)
             b.isSelected = terminalView?.allowMouseReporting ?? false
@@ -329,19 +329,20 @@ public class TerminalAccessory: UIInputView, UIInputViewAudioFeedback {
         super.layoutSubviews()
     }
     
-    func makeAutoRepeatButton (_ iconName: String, _ action: Selector, pointSize: CGFloat = 12) -> UIButton
+    func makeAutoRepeatButton (_ iconName: String, _ action: Selector) -> UIButton
     {
-        let b = makeButton ("", action, icon: iconName, iconPointSize: pointSize)
+        let b = makeButton ("", action, icon: iconName)
         b.addTarget(self, action: #selector(cancelTimer), for: .touchUpOutside)
         b.addTarget(self, action: #selector(cancelTimer), for: .touchCancel)
         b.addTarget(self, action: #selector(cancelTimer), for: .touchUpInside)
         return b
     }
     
-    func makeButton (_ title: String, _ action: Selector, icon: String = "", isNormal: Bool = true, iconPointSize: CGFloat = 12) -> UIButton
+    func makeButton (_ title: String, _ action: Selector, icon: String = "", isNormal: Bool = true) -> UIButton
     {
         let useSmall = self._useSmall
         let b = BackgroundSelectedButton.init(type: .roundedRect)
+        let defaults = UserDefaults.standard
         
         TerminalAccessory.styleButton (b)
         b.addTarget(self, action: action, for: .touchDown)
@@ -352,12 +353,24 @@ public class TerminalAccessory: UIInputView, UIInputViewAudioFeedback {
         b.color = isNormal ? terminalView.buttonBackgroundColor : terminalView.buttonDarkBackgroundColor
         b.setTitleColor(terminalView.buttonColor, for: .normal)
         b.setTitleColor(terminalView.buttonColor, for: .selected)
-        b.contentEdgeInsets = UIEdgeInsets(top: 5, left: 5, bottom: 5, right: 5)
-        b.titleLabel?.font = UIFont.systemFont(ofSize: useSmall ? 11 : 12)
+        let pad = defaults.object(forKey: "accessory_padding") as? Double ?? 5
+        b.contentEdgeInsets = UIEdgeInsets(top: pad, left: pad, bottom: pad, right: pad)
         b.backgroundColor = isNormal ? terminalView.buttonBackgroundColor : terminalView.buttonDarkBackgroundColor
         
+        let isMultiChar = title.count > 2 || title.hasPrefix("F")
+        let fontSize: CGFloat
         if icon != "" {
-            if let img = UIImage (systemName: icon, withConfiguration: UIImage.SymbolConfiguration (pointSize: iconPointSize)) {
+            fontSize = defaults.object(forKey: "accessory_icon_size") as? Double ?? 12
+        } else if isMultiChar {
+            fontSize = defaults.object(forKey: "accessory_multi_char_font_size") as? Double ?? 11
+        } else {
+            fontSize = defaults.object(forKey: "accessory_single_char_font_size") as? Double ?? 12
+        }
+        b.titleLabel?.font = UIFont.systemFont(ofSize: useSmall ? max(fontSize - 1, 8) : fontSize)
+        
+        if icon != "" {
+            let iconSize = defaults.object(forKey: "accessory_icon_size") as? Double ?? 12
+            if let img = UIImage (systemName: icon, withConfiguration: UIImage.SymbolConfiguration (pointSize: iconSize)) {
                 b.setImage(img.withTintColor(terminalView.buttonColor, renderingMode: .alwaysOriginal), for: .normal)
             }
         }
