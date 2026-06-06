@@ -352,14 +352,12 @@ public class TerminalAccessory: UIInputView, UIInputViewAudioFeedback {
         b.color = isNormal ? terminalView.buttonBackgroundColor : terminalView.buttonDarkBackgroundColor
         b.setTitleColor(terminalView.buttonColor, for: .normal)
         b.setTitleColor(terminalView.buttonColor, for: .selected)
-        b.contentEdgeInsets = UIEdgeInsets(top: 6, left: 6, bottom: 6, right: 6)
-        if useSmall {
-            b.titleLabel?.font = UIFont.systemFont(ofSize: 11)
-        }
+        b.contentEdgeInsets = UIEdgeInsets(top: 4, left: 4, bottom: 4, right: 4)
+        b.titleLabel?.font = UIFont.systemFont(ofSize: useSmall ? 10 : 11)
         b.backgroundColor = isNormal ? terminalView.buttonBackgroundColor : terminalView.buttonDarkBackgroundColor
         
         if icon != "" {
-            if let img = UIImage (systemName: icon, withConfiguration: UIImage.SymbolConfiguration (pointSize: 14.0)) {
+            if let img = UIImage (systemName: icon, withConfiguration: UIImage.SymbolConfiguration (pointSize: 11.0)) {
                 b.setImage(img.withTintColor(terminalView.buttonColor, renderingMode: .alwaysOriginal), for: .normal)
             }
         }
