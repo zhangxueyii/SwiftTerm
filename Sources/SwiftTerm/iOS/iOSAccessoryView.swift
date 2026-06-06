@@ -39,7 +39,6 @@ public class TerminalAccessory: UIInputView, UIInputViewAudioFeedback {
     }
     
     var touchButton: UIButton!
-    var keyboardButton: UIButton!
     
     var views: [UIView] = []
     
@@ -194,10 +193,11 @@ public class TerminalAccessory: UIInputView, UIInputViewAudioFeedback {
         touchButton.isSelected = !(terminalView?.allowMouseReporting ?? false)
     }
 
-    var leftViews: [UIView] = []
-    var floatViews: [UIView] = []
-    var rightViews: [UIView] = []
-    
+    @objc func altLeftAction (_ sender: AnyObject) { clickAndSend ([0x1B, 0x62]) }
+    @objc func altRightAction (_ sender: AnyObject) { clickAndSend ([0x1B, 0x66]) }
+    @objc func homeAction (_ sender: AnyObject) { clickAndSend ([0x1B, 0x5B, 0x48]) }
+    @objc func endAction (_ sender: AnyObject) { clickAndSend ([0x1B, 0x5B, 0x46]) }
+
     /**
      * This method setups the internal data structures to setup the UI shown on the accessory view,
      * if you provide your own implementation, you are responsible for adding all the elements to the
@@ -209,157 +209,124 @@ public class TerminalAccessory: UIInputView, UIInputViewAudioFeedback {
             view.removeFromSuperview()
         }
         views = []
-        leftViews = []
-        rightViews = []
-        floatViews = []
-        terminalView?.setupKeyboardButtonColors ()
-        let useSmall = self._useSmall
-        if useSmall {
-            leftViews.append(makeButton("", #selector(esc), icon: "escape", isNormal: false))
-            let controlButton = makeButton("", #selector(ctrl), icon: "control", isNormal: false)
-            leftViews.append(controlButton)
-            self.controlButton = controlButton
-            let altButton = makeButton("", #selector(alt), icon: "option", isNormal: false)
-            leftViews.append(altButton)
-            self.altButton = altButton
-            leftViews.append(makeButton("", #selector(tab), icon: "arrow.right.to.line.compact"))
-        } else {
-            leftViews.append(makeButton ("esc", #selector(esc), isNormal: false))
-            let controlButton = makeButton ("ctrl", #selector(ctrl), isNormal: false)
-            leftViews.append(controlButton)
-            self.controlButton = controlButton
-            let altButton = makeButton ("alt", #selector(alt), isNormal: false)
-            leftViews.append(altButton)
-            self.altButton = altButton
-            leftViews.append(makeButton("", #selector(tab), icon: "arrow.right.to.line.compact", isNormal: false))
-            //leftViews.append(makeButton ("tab", #selector(tab)))
-        }
-        rightViews.append(makeAutoRepeatButton ("arrow.left", #selector(left)))
-        rightViews.append(makeAutoRepeatButton ("arrow.down", #selector(down)))
-        rightViews.append(makeAutoRepeatButton ("arrow.up", #selector(up)))
-        rightViews.append(makeAutoRepeatButton ("arrow.right", #selector(right)))
-        touchButton = makeButton ("", #selector(toggleTouch), icon: "hand.draw", isNormal: false)
-        touchButton.isSelected = terminalView?.allowMouseReporting ?? false
-        rightViews.append (touchButton)
-        keyboardButton = makeButton ("", #selector(toggleInputKeyboard), icon: "keyboard.chevron.compact.down", isNormal: false)
-        rightViews.append (keyboardButton)
-
-        // calculate aditional space we can give to keys we want to be bigger (all top level except function keys)
-        let minWidth: CGFloat = useSmall ? 20.0 : (UIDevice.current.userInterfaceIdiom == .phone) ? 22 : 32
-        let maxFuncKeyWidth = (minWidth + buttonPad) * 10
-        let importantKeysCount: Double = useSmall ? 12 : 14
-        let maxSpaceForImportantKeys = frame.width - maxFuncKeyWidth - buttonPad
-        var aditionalSpaceForImportantKeys: CGFloat = 0
-        if maxSpaceForImportantKeys > 0 {
-            aditionalSpaceForImportantKeys =  maxSpaceForImportantKeys / importantKeysCount
-        }
-        func setMinWidth (_ view: UIView, isImportantKey: Bool = false) {
-            view.sizeToFit()
-            if useSmall {
-                view.frame = CGRect (origin: CGPoint.zero, size: CGSize (width: 20, height: view.frame.height))
-            }
-            var calculatedMinWidth = minWidth
-            
-            // if key we want to be bigger calculate bigger width
-            if isImportantKey {
-                calculatedMinWidth = max(aditionalSpaceForImportantKeys, minWidth)
-            }
-          
-            if view.frame.width < calculatedMinWidth {
-                let r = CGRect (origin: view.frame.origin, size: CGSize (width: calculatedMinWidth, height: frame.height-8))
-                view.frame = r
+        terminalView?.setupKeyboardButtonColors()
+        
+        let savedOrder = UserDefaults.standard.stringArray(forKey: "accessory_key_order")
+        let keyOrder = savedOrder ?? [
+            "esc","ctrl","alt","tab",
+            "tilde","colon","pipe","slash","dash",
+            "f1","f2","f3","f4","f5","f6","f7","f8","f9","f10",
+            "altLeft","altRight","home","end",
+            "arrowLeft","arrowDown","arrowUp","arrowRight",
+            "touch","keyboard"
+        ]
+        
+        let scrollView = UIScrollView()
+        scrollView.translatesAutoresizingMaskIntoConstraints = false
+        scrollView.showsHorizontalScrollIndicator = false
+        
+        let stack = UIStackView()
+        stack.translatesAutoresizingMaskIntoConstraints = false
+        stack.axis = .horizontal
+        stack.spacing = 4
+        stack.alignment = .center
+        stack.distribution = .fillProportionally
+        
+        for keyId in keyOrder {
+            if let button = buildButton(for: keyId) {
+                stack.addArrangedSubview(button)
+                views.append(button)
             }
         }
         
-        func buttonizeView (_ view: UIView, isImportantKey: Bool = false) {
-            setMinWidth (view, isImportantKey: isImportantKey)
-        }
-        leftViews.forEach { buttonizeView($0, isImportantKey: true) }
-        rightViews.forEach { buttonizeView($0, isImportantKey: true) }
-        let fixedUsedSpace = (leftViews + rightViews).reduce(0) { $0 + $1.frame.width + buttonPad }
-
-        if useSmall && false {
-            floatViews.append (makeDouble ("~", "|"))
-            floatViews.append (makeDouble ("/", "-"))
-        } else {
-            floatViews.append(makeButton ("~", #selector(tilde)))
-            floatViews.append(makeButton (":", #selector(colon)))
-            floatViews.append(makeButton ("|", #selector(pipe)))
-            floatViews.append(makeButton ("/", #selector(slash)))
-            floatViews.append(makeButton ("-", #selector(dash)))
-        }
-        floatViews.forEach {
-            setMinWidth ($0, isImportantKey: true)
-        }
-        let usedSpace = (floatViews).reduce(fixedUsedSpace) { $0 + $1.frame.width + buttonPad }
-        var additionalUsedSpaceToAdd = 0.0
+        scrollView.addSubview(stack)
+        addSubview(scrollView)
         
-        if UIDevice.current.userInterfaceIdiom == .phone && frame.width > 500 {
-            additionalUsedSpaceToAdd = 50.0
-        }
-        var left = frame.width - usedSpace - additionalUsedSpaceToAdd
-        func addOptional (_ text: String, _ selector: Selector) {
-            left -= minWidth + buttonPad
-            
-            if left > 0 {
-                floatViews.append(makeButton(text, selector))
-            }
-        }
-        addOptional("F1", #selector(f1))
-        addOptional("F2", #selector(f2))
-        addOptional("F3", #selector(f3))
-        addOptional("F4", #selector(f4))
-        addOptional("F5", #selector(f5))
-        addOptional("F6", #selector(f6))
-        addOptional("F7", #selector(f7))
-        addOptional("F8", #selector(f8))
-        addOptional("F9", #selector(f9))
-        addOptional("F10", #selector(f10))
-        let smallerFloatViews = useSmall ? floatViews.suffix(floatViews.count - 2) : floatViews.suffix(floatViews.count - 4)
-        smallerFloatViews.forEach {
-            setMinWidth($0)
-        }
-
-        views.append(contentsOf: leftViews)
-        views.append(contentsOf: floatViews)
-        views.append(contentsOf: rightViews)
-        
-
-        for view in views {
-            addSubview(view)
-        }
-        layoutSubviews ()
+        NSLayoutConstraint.activate([
+            scrollView.topAnchor.constraint(equalTo: topAnchor),
+            scrollView.leadingAnchor.constraint(equalTo: leadingAnchor),
+            scrollView.trailingAnchor.constraint(equalTo: trailingAnchor),
+            scrollView.bottomAnchor.constraint(equalTo: bottomAnchor),
+            stack.topAnchor.constraint(equalTo: scrollView.topAnchor),
+            stack.bottomAnchor.constraint(equalTo: scrollView.bottomAnchor),
+            stack.leadingAnchor.constraint(equalTo: scrollView.leadingAnchor, constant: 4),
+            stack.trailingAnchor.constraint(equalTo: scrollView.trailingAnchor, constant: -4),
+            stack.heightAnchor.constraint(equalTo: scrollView.heightAnchor)
+        ])
     }
-    
-    public override func traitCollectionDidChange(_ previousTraitCollection: UITraitCollection?) {
-            super.traitCollectionDidChange(previousTraitCollection)
-return
-        setupUI()
+
+    func buildButton(for keyId: String) -> UIView? {
+        switch keyId {
+        case "esc":
+            return makeButton("", #selector(esc), icon: "escape", isNormal: false)
+        case "ctrl":
+            let b = makeButton("", #selector(ctrl), icon: "control", isNormal: false)
+            controlButton = b
+            return b
+        case "alt":
+            let b = makeButton("", #selector(alt), icon: "option", isNormal: false)
+            altButton = b
+            return b
+        case "tab":
+            return makeButton("", #selector(tab), icon: "arrow.right.to.line.compact", isNormal: false)
+        case "tilde":
+            return makeButton("~", #selector(tilde))
+        case "colon":
+            return makeButton(":", #selector(colon))
+        case "pipe":
+            return makeButton("|", #selector(pipe))
+        case "slash":
+            return makeButton("/", #selector(slash))
+        case "dash":
+            return makeButton("-", #selector(dash))
+        case "arrowLeft":
+            return makeAutoRepeatButton("arrow.left", #selector(left))
+        case "arrowDown":
+            return makeAutoRepeatButton("arrow.down", #selector(down))
+        case "arrowUp":
+            return makeAutoRepeatButton("arrow.up", #selector(up))
+        case "arrowRight":
+            return makeAutoRepeatButton("arrow.right", #selector(right))
+        case "touch":
+            let b = makeButton("", #selector(toggleTouch), icon: "hand.draw", isNormal: false)
+            b.isSelected = terminalView?.allowMouseReporting ?? false
+            touchButton = b
+            return b
+        case "keyboard":
+            return makeButton("", #selector(toggleInputKeyboard), icon: "keyboard.chevron.compact.down", isNormal: false)
+        case "altLeft":
+            return makeButton("⌥←", #selector(altLeftAction))
+        case "altRight":
+            return makeButton("⌥→", #selector(altRightAction))
+        case "home":
+            return makeButton("↖", #selector(homeAction))
+        case "end":
+            return makeButton("↘", #selector(endAction))
+        case "f1": return makeButton("F1", #selector(f1))
+        case "f2": return makeButton("F2", #selector(f2))
+        case "f3": return makeButton("F3", #selector(f3))
+        case "f4": return makeButton("F4", #selector(f4))
+        case "f5": return makeButton("F5", #selector(f5))
+        case "f6": return makeButton("F6", #selector(f6))
+        case "f7": return makeButton("F7", #selector(f7))
+        case "f8": return makeButton("F8", #selector(f8))
+        case "f9": return makeButton("F9", #selector(f9))
+        case "f10": return makeButton("F10", #selector(f10))
+        default:
+            return nil
+        }
     }
 
     var _useSmall: Bool {
-        get {
-            frame.width < 380
-        }
+        frame.width < 380
     }
     
-    var buttonPad = 4.0
+    public override func traitCollectionDidChange(_ previousTraitCollection: UITraitCollection?) {
+        super.traitCollectionDidChange(previousTraitCollection)
+    }
+
     public override func layoutSubviews() {
-        var x: CGFloat = 2
-        let dh = views.reduce (0) { max ($0, $1.frame.size.height )}
-        
-        for view in leftViews + floatViews {
-            let size = view.frame.size
-            view.frame = CGRect(x: x, y: 4, width: size.width, height: dh)
-            x += size.width + buttonPad
-        }
-        
-        var right = frame.width - 2
-        for view in rightViews.reversed() {
-            let size = view.frame.size
-            view.frame = CGRect (x: right-size.width, y: 4, width: size.width, height: dh)
-            right -= size.width + buttonPad
-        }
+        super.layoutSubviews()
     }
     
     func makeAutoRepeatButton (_ iconName: String, _ action: Selector) -> UIButton
@@ -395,13 +362,6 @@ return
                 b.setImage(img.withTintColor(terminalView.buttonColor, renderingMode: .alwaysOriginal), for: .normal)
             }
         }
-        return b
-    }
-    
-    func makeDouble (_ primary: String, _ secondary: String) -> UIView {
-        let b = DoubleButton (frame: CGRect (x: 0, y: 0, width: 20, height: 26))
-        b.primaryText = primary
-        b.secondaryText = secondary
         return b
     }
     
