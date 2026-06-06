@@ -39,10 +39,6 @@ public class TerminalAccessory: UIInputView, UIInputViewAudioFeedback {
     }
     
     var touchButton: UIButton!
-    var sftpButton: UIButton?
-    
-    /// Action invoked when the SFTP button is tapped. Set by the host app.
-    public var sftpAction: (() -> Void)?
     
     var views: [UIView] = []
     
@@ -202,10 +198,6 @@ public class TerminalAccessory: UIInputView, UIInputViewAudioFeedback {
     @objc func homeAction (_ sender: AnyObject) { clickAndSend ([0x1B, 0x5B, 0x48]) }
     @objc func endAction (_ sender: AnyObject) { clickAndSend ([0x1B, 0x5B, 0x46]) }
 
-    @objc func sftpButtonTapped (_ sender: AnyObject) {
-        sftpAction?()
-    }
-
     /**
      * This method setups the internal data structures to setup the UI shown on the accessory view,
      * if you provide your own implementation, you are responsible for adding all the elements to the
@@ -244,13 +236,6 @@ public class TerminalAccessory: UIInputView, UIInputViewAudioFeedback {
             if let button = buildButton(for: keyId) {
                 stack.addArrangedSubview(button)
                 views.append(button)
-                if keyId == "keyboard" {
-                    let sftpBtn = makeButton("", #selector(sftpButtonTapped), icon: "arrow.up.arrow.down.circle", isNormal: false)
-                    sftpBtn.widthAnchor.constraint(equalToConstant: 28).isActive = true
-                    stack.addArrangedSubview(sftpBtn)
-                    views.append(sftpBtn)
-                    self.sftpButton = sftpBtn
-                }
             }
         }
         
