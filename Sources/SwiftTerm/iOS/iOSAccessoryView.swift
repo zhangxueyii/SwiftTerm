@@ -297,9 +297,9 @@ public class TerminalAccessory: UIInputView, UIInputViewAudioFeedback {
         case "keyboard":
             return makeButton("", #selector(toggleInputKeyboard), icon: "keyboard.chevron.compact.down", isNormal: false)
         case "altLeft":
-            return makeButton("⌥←", #selector(altLeftAction))
+            return makeButton("◁", #selector(altLeftAction))
         case "altRight":
-            return makeButton("⌥→", #selector(altRightAction))
+            return makeButton("▷", #selector(altRightAction))
         case "home":
             return makeButton("↖", #selector(homeAction))
         case "end":
@@ -352,12 +352,14 @@ public class TerminalAccessory: UIInputView, UIInputViewAudioFeedback {
         guard let terminalView else {
             return b
         }
-        b.color = isNormal ? terminalView.buttonBackgroundColor : terminalView.buttonDarkBackgroundColor
-        b.setTitleColor(terminalView.buttonColor, for: .normal)
-        b.setTitleColor(terminalView.buttonColor, for: .selected)
+        b.color = UIColor.white
+        b.setTitleColor(UIColor.darkGray, for: .normal)
+        b.setTitleColor(UIColor.darkGray, for: .selected)
+        b.backgroundColor = UIColor.white
+        b.layer.borderWidth = 1.0
+        b.layer.borderColor = UIColor.systemGray4.cgColor
         let pad = defaults.object(forKey: "accessory_padding") as? Double ?? 5
         b.contentEdgeInsets = UIEdgeInsets(top: pad, left: pad, bottom: pad, right: pad)
-        b.backgroundColor = isNormal ? terminalView.buttonBackgroundColor : terminalView.buttonDarkBackgroundColor
         
         let isMultiChar = title.count > 2 || title.hasPrefix("F")
         let fontSize: CGFloat
