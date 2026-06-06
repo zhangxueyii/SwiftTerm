@@ -244,13 +244,15 @@ public class TerminalAccessory: UIInputView, UIInputViewAudioFeedback {
             if let button = buildButton(for: keyId) {
                 stack.addArrangedSubview(button)
                 views.append(button)
+                if keyId == "keyboard" {
+                    let sftpBtn = makeButton("", #selector(sftpButtonTapped), icon: "arrow.up.arrow.down.circle", isNormal: false)
+                    sftpBtn.widthAnchor.constraint(equalToConstant: 28).isActive = true
+                    stack.addArrangedSubview(sftpBtn)
+                    views.append(sftpBtn)
+                    self.sftpButton = sftpBtn
+                }
             }
         }
-        let sftpBtn = makeButton("", #selector(sftpButtonTapped), icon: "arrow.up.arrow.down.circle", isNormal: false)
-        sftpBtn.widthAnchor.constraint(equalToConstant: 28).isActive = true
-        stack.addArrangedSubview(sftpBtn)
-        views.append(sftpBtn)
-        self.sftpButton = sftpBtn
         
         scrollView.addSubview(stack)
         addSubview(scrollView)
