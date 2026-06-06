@@ -228,7 +228,7 @@ public class TerminalAccessory: UIInputView, UIInputViewAudioFeedback {
         let stack = UIStackView()
         stack.translatesAutoresizingMaskIntoConstraints = false
         stack.axis = .horizontal
-        stack.spacing = 4
+        stack.spacing = 2
         stack.alignment = .center
         stack.distribution = .fillProportionally
         
@@ -352,8 +352,9 @@ public class TerminalAccessory: UIInputView, UIInputViewAudioFeedback {
         b.color = isNormal ? terminalView.buttonBackgroundColor : terminalView.buttonDarkBackgroundColor
         b.setTitleColor(terminalView.buttonColor, for: .normal)
         b.setTitleColor(terminalView.buttonColor, for: .selected)
+        b.contentEdgeInsets = UIEdgeInsets(top: 6, left: 6, bottom: 6, right: 6)
         if useSmall {
-            b.titleLabel?.font = UIFont.systemFont(ofSize: 12)
+            b.titleLabel?.font = UIFont.systemFont(ofSize: 11)
         }
         b.backgroundColor = isNormal ? terminalView.buttonBackgroundColor : terminalView.buttonDarkBackgroundColor
         
