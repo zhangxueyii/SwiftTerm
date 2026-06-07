@@ -398,13 +398,14 @@ public class TerminalAccessory: UIInputView, UIInputViewAudioFeedback {
     {
         let defaults = UserDefaults.standard
         b.layer.cornerRadius = defaults.object(forKey: "accessory_corner_radius") as? Double ?? 5
-        b.layer.masksToBounds = true
         let shadowEnabled = defaults.object(forKey: "accessory_shadow_enabled") as? Bool ?? true
         if shadowEnabled {
+            b.layer.masksToBounds = false
             b.layer.shadowOffset = CGSize(width: 0, height: 1.0)
             b.layer.shadowRadius = 0.0
-            b.layer.shadowOpacity = Float(defaults.object(forKey: "accessory_shadow_opacity") as? Double ?? 0.35)
+            b.layer.shadowOpacity = Float(defaults.object(forKey: "accessory_shadow_opacity") as? Double ?? 0.10)
         } else {
+            b.layer.masksToBounds = true
             b.layer.shadowOpacity = 0
         }
     }
