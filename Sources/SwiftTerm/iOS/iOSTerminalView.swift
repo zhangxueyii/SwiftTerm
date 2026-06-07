@@ -662,7 +662,7 @@ open class TerminalView: UIScrollView, UITextInputTraits, UIKeyInput, UIScrollVi
         return calculateTapHit(point: gesture.location(in: self))
     }
 
-    /// Returns a buffer-relative position, instead of a screen position.
+    /// Returns a screen-relative position (0 = top of visible area).
     /// - Parameter point: location of where the event took place in view coordinates
     /// - Returns: both the position where the event took place (either in screen resolution, or buffer relative) and the pixel position to construct the menu location
     func calculateTapHit (point: CGPoint) -> (grid: Position, pixels: Position)
@@ -679,7 +679,7 @@ open class TerminalView: UIScrollView, UITextInputTraits, UIKeyInput, UIScrollVi
         if row < 0 {
             return (Position(col: 0, row: 0), toInt (point))
         }
-        return (Position(col: min (max (0, col), terminal.cols-1), row: row), toInt (point))
+        return (Position(col: min (max (0, col), terminal.cols-1), row: min (max (0, row), terminal.rows-1)), toInt (point))
     }
 
     func encodeFlags (release: Bool) -> Int
@@ -700,9 +700,7 @@ open class TerminalView: UIScrollView, UITextInputTraits, UIKeyInput, UIScrollVi
     func sharedMouseEvent (gestureRecognizer: UIGestureRecognizer, release: Bool)
     {
         let hit = calculateTapHit(gesture: gestureRecognizer)
-        if let grid = hit.grid.toScreenCoordinate(from: terminal.displayBuffer) {
-            terminal.sendEvent(buttonFlags: encodeFlags (release: release), x: grid.col, y: grid.row, pixelX: hit.pixels.col, pixelY: hit.pixels.row)
-        }
+        terminal.sendEvent(buttonFlags: encodeFlags (release: release), x: hit.grid.col, y: hit.grid.row, pixelX: hit.pixels.col, pixelY: hit.pixels.row)
     }
     
     // Returns the offsets into getTerminal().buffer.lines for the first visible and last visible lines
@@ -916,20 +914,7 @@ open class TerminalView: UIScrollView, UITextInputTraits, UIKeyInput, UIScrollVi
                 case .changed:
                     if terminal.mouseMode.sendButtonTracking() {
                         let hit = calculateTapHit(gesture: gestureRecognizer)
-                        if let grid = hit.grid.toScreenCoordinate(from: terminal.displayBuffer) {
-                            terminal.sendMotion(buttonFlags: encodeFlags(release: false), x: grid.col, y: grid.row, pixelX: hit.pixels.col, pixelY: hit.pixels.row)
-                        }
-                    }
-                case .ended, .cancelled:
-                    if terminal.mouseMode.sendButtonRelease() {
-                        sharedMouseEvent(gestureRecognizer: gestureRecognizer, release: true)
-                    }
-                case .changed:
-                    if terminal.mouseMode.sendButtonTracking() {
-                        let hit = calculateTapHit(gesture: gestureRecognizer)
-                        if let grid = hit.grid.toScreenCoordinate(from: terminal.displayBuffer) {
-                            terminal.sendMotion(buttonFlags: encodeFlags(release: false), x: grid.col, y: grid.row, pixelX: hit.pixels.col, pixelY: hit.pixels.row)
-                        }
+                        terminal.sendMotion(buttonFlags: encodeFlags(release: false), x: hit.grid.col, y: hit.grid.row, pixelX: hit.pixels.col, pixelY: hit.pixels.row)
                     }
                 default:
                     break
