@@ -232,10 +232,11 @@ public class TerminalAccessory: UIInputView, UIInputViewAudioFeedback {
         stack.alignment = .center
         stack.distribution = .fill
         
-        let buttonWidth = CGFloat(UserDefaults.standard.object(forKey: "accessory_button_width") as? Double ?? 30)
+        let buttonWidth = CGFloat(UserDefaults.standard.object(forKey: "accessory_button_width") as? Double ?? 26)
         for keyId in keyOrder {
             if let button = buildButton(for: keyId) {
                 button.widthAnchor.constraint(equalToConstant: buttonWidth).isActive = true
+                button.heightAnchor.constraint(equalToConstant: buttonWidth).isActive = true
                 stack.addArrangedSubview(button)
                 views.append(button)
             }
@@ -358,22 +359,22 @@ public class TerminalAccessory: UIInputView, UIInputViewAudioFeedback {
         b.backgroundColor = UIColor.white
         b.layer.borderWidth = 1.0
         b.layer.borderColor = UIColor.systemGray4.cgColor
-        let pad = defaults.object(forKey: "accessory_padding") as? Double ?? 5
+        let pad = defaults.object(forKey: "accessory_padding") as? Double ?? 3
         b.contentEdgeInsets = UIEdgeInsets(top: pad, left: pad, bottom: pad, right: pad)
         
         let isMultiChar = title.count > 2 || title.hasPrefix("F")
         let fontSize: CGFloat
         if icon != "" {
-            fontSize = defaults.object(forKey: "accessory_icon_size") as? Double ?? 12
+            fontSize = defaults.object(forKey: "accessory_icon_size") as? Double ?? 9
         } else if isMultiChar {
-            fontSize = defaults.object(forKey: "accessory_multi_char_font_size") as? Double ?? 11
+            fontSize = defaults.object(forKey: "accessory_multi_char_font_size") as? Double ?? 9
         } else {
             fontSize = defaults.object(forKey: "accessory_single_char_font_size") as? Double ?? 12
         }
         b.titleLabel?.font = UIFont.systemFont(ofSize: useSmall ? max(fontSize - 1, 8) : fontSize)
         
         if icon != "" {
-            let iconSize = defaults.object(forKey: "accessory_icon_size") as? Double ?? 12
+            let iconSize = defaults.object(forKey: "accessory_icon_size") as? Double ?? 9
             if let img = UIImage (systemName: icon, withConfiguration: UIImage.SymbolConfiguration (pointSize: iconSize)) {
                 b.setImage(img.withTintColor(terminalView.buttonColor, renderingMode: .alwaysOriginal), for: .normal)
             }
