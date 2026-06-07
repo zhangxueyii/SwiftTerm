@@ -356,7 +356,18 @@ public class TerminalAccessory: UIInputView, UIInputViewAudioFeedback {
         b.color = UIColor.white
         b.setTitleColor(UIColor.darkGray, for: .normal)
         b.setTitleColor(UIColor.darkGray, for: .selected)
-        b.backgroundColor = UIColor.white
+        let useThemeBg = defaults.object(forKey: "accessory_use_theme_background") as? Bool ?? true
+        let bgColor: UIColor
+        if useThemeBg {
+            bgColor = terminalView.buttonBackgroundColor
+        } else if let bgData = defaults.object(forKey: "accessory_background_color_data") as? Data,
+                  let storedColor = try? NSKeyedUnarchiver.unarchivedObject(ofClass: UIColor.self, from: bgData) {
+            bgColor = storedColor
+        } else {
+            bgColor = UIColor.white
+        }
+        b.backgroundColor = bgColor
+        b.color = bgColor
         b.layer.borderWidth = 1.0
         b.layer.borderColor = UIColor.systemGray4.cgColor
         let pad = defaults.object(forKey: "accessory_padding") as? Double ?? 3
@@ -385,11 +396,17 @@ public class TerminalAccessory: UIInputView, UIInputViewAudioFeedback {
     // I am not committed to this style, this is just something quick to get going
     static func styleButton (_ b: UIButton)
     {
-        b.layer.cornerRadius = 5
+        let defaults = UserDefaults.standard
+        b.layer.cornerRadius = defaults.object(forKey: "accessory_corner_radius") as? Double ?? 5
         b.layer.masksToBounds = true
-        b.layer.shadowOffset = CGSize(width: 0, height: 1.0)
-        b.layer.shadowRadius = 0.0
-        b.layer.shadowOpacity = 0.35
+        let shadowEnabled = defaults.object(forKey: "accessory_shadow_enabled") as? Bool ?? true
+        if shadowEnabled {
+            b.layer.shadowOffset = CGSize(width: 0, height: 1.0)
+            b.layer.shadowRadius = 0.0
+            b.layer.shadowOpacity = Float(defaults.object(forKey: "accessory_shadow_opacity") as? Double ?? 0.35)
+        } else {
+            b.layer.shadowOpacity = 0
+        }
     }
 }
 
