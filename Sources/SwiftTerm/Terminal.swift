@@ -5683,9 +5683,11 @@ open class Terminal {
             case 0:
                 value = 0
             case 1:
-                value = 1
+                value = 0
             case 2:
                 value = 2
+            case 3:
+                value = 1
             case 4:
                 value = 64
             case 5:
