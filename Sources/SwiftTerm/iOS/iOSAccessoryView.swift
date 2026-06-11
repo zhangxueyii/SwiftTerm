@@ -40,6 +40,9 @@ public class TerminalAccessory: UIInputView, UIInputViewAudioFeedback {
     
     var touchButton: UIButton!
     
+    /// Called when the Commands key is tapped in the accessory bar.
+    public var commandsHandler: (() -> Void)?
+    
     var views: [UIView] = []
     
     public init (frame: CGRect, inputViewStyle: UIInputView.Style, container: TerminalView)
@@ -81,6 +84,10 @@ public class TerminalAccessory: UIInputView, UIInputViewAudioFeedback {
         terminalView?.insertTextFromAccessory(text)
     }
     
+    @objc func commandsAction (_ sender: AnyObject) {
+        commandsHandler? ()
+    }
+
     @objc func esc (_ sender: AnyObject) { clickAndSend ([0x1b]) }
     @objc func tab (_ sender: AnyObject) { clickAndSend ([0x9]) }
     @objc func tilde (_ sender: AnyObject) { clickAndInsertText ("~") }
@@ -213,7 +220,7 @@ public class TerminalAccessory: UIInputView, UIInputViewAudioFeedback {
         
         let savedOrder = UserDefaults.standard.stringArray(forKey: "accessory_key_order")
         let keyOrder = savedOrder ?? [
-            "esc","ctrl","alt","tab",
+            "commands","esc","ctrl","alt","tab",
             "tilde","colon","pipe","slash","dash",
             "f1","f2","f3","f4","f5","f6","f7","f8","f9","f10",
             "altLeft","altRight","home","end",
@@ -260,6 +267,8 @@ public class TerminalAccessory: UIInputView, UIInputViewAudioFeedback {
 
     func buildButton(for keyId: String) -> UIView? {
         switch keyId {
+        case "commands":
+            return makeButton("Cmd", #selector(commandsAction), icon: "terminal", isNormal: false)
         case "esc":
             return makeButton("⎋", #selector(esc), isNormal: false)
         case "ctrl":

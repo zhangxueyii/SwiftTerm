@@ -1231,7 +1231,7 @@ open class TerminalView: UIScrollView, UITextInputTraits, UIKeyInput, UIScrollVi
     }
 
     /// Returns the inputaccessory in case it is a TerminalAccessory and we can use it
-    var terminalAccessory: TerminalAccessory? {
+    public var terminalAccessory: TerminalAccessory? {
         get {
             _inputAccessory as? TerminalAccessory
         }
