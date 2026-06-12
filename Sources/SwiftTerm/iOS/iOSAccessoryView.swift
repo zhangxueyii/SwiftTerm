@@ -316,7 +316,7 @@ public class TerminalAccessory: UIInputView, UIInputViewAudioFeedback {
         case "end":
             return makeButton("↘", #selector(endAction))
         case "altEnter":
-            return makeButton("⌥↩", #selector(altEnterAction))
+            return makeButton("↩", #selector(altEnterAction))
         case "f1": return makeButton("F1", #selector(f1))
         case "f2": return makeButton("F2", #selector(f2))
         case "f3": return makeButton("F3", #selector(f3))
