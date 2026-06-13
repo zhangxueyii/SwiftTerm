@@ -205,6 +205,7 @@ public class TerminalAccessory: UIInputView, UIInputViewAudioFeedback {
     @objc func homeAction (_ sender: AnyObject) { clickAndSend ([0x1B, 0x5B, 0x48]) }
     @objc func endAction (_ sender: AnyObject) { clickAndSend ([0x1B, 0x5B, 0x46]) }
     @objc func altEnterAction (_ sender: AnyObject) { clickAndSend ([0x1B, 0x0D]) }
+    @objc func ctrlCAction (_ sender: AnyObject) { clickAndSend ([0x03]) }
 
     /**
      * This method setups the internal data structures to setup the UI shown on the accessory view,
@@ -221,7 +222,7 @@ public class TerminalAccessory: UIInputView, UIInputViewAudioFeedback {
         
         let savedOrder = UserDefaults.standard.stringArray(forKey: "accessory_key_order")
         let keyOrder = savedOrder ?? [
-            "commands","esc","altEnter","ctrl","alt","tab",
+            "commands","esc","altEnter","ctrlC","ctrl","alt","tab",
             "tilde","colon","pipe","slash","dash",
             "f1","f2","f3","f4","f5","f6","f7","f8","f9","f10",
             "altLeft","altRight","home","end",
@@ -317,6 +318,8 @@ public class TerminalAccessory: UIInputView, UIInputViewAudioFeedback {
             return makeButton("↘", #selector(endAction))
         case "altEnter":
             return makeButton("↩", #selector(altEnterAction))
+        case "ctrlC":
+            return makeButton("^C", #selector(ctrlCAction))
         case "f1": return makeButton("F1", #selector(f1))
         case "f2": return makeButton("F2", #selector(f2))
         case "f3": return makeButton("F3", #selector(f3))
