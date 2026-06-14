@@ -65,10 +65,12 @@ public class TerminalAccessory: UIInputView, UIInputViewAudioFeedback {
     public var hjklModifier: Bool = false {
         didSet {
             hjklButton?.isSelected = hjklModifier
+            updateHJKLKeyButtons()
         }
     }
     
     private var hjklTapWork: DispatchWorkItem?
+    private var hjklKeyButtons: [UIButton] = []
     
     var views: [UIView] = []
     
@@ -227,14 +229,54 @@ public class TerminalAccessory: UIInputView, UIInputViewAudioFeedback {
     }
 
     @objc func hjklAction (_ sender: AnyObject) {
-        hjklTapWork?.cancel()
-        hjklTapWork = DispatchWorkItem { [weak self] in
-            self?.hjklHandler? ()
-        }
         if let w = hjklTapWork {
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.3, execute: w)
+            w.cancel()
+            hjklTapWork = nil
+            hjklAltHandler? ()
+        } else {
+            hjklTapWork = DispatchWorkItem { [weak self] in
+                self?.hjklHandler? ()
+            }
+            if let w = hjklTapWork {
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.3, execute: w)
+            }
         }
-        hjklAltHandler? ()
+    }
+
+    @objc func hjklKeyAction (_ sender: AnyObject) {
+        guard let btn = sender as? UIButton else { return }
+        if hjklModifier {
+            switch btn.tag {
+            case 0: clickAndSend([0x1b, 0x5b, 0x44]) // h → left
+            case 1: clickAndSend([0x1b, 0x5b, 0x42]) // j → down
+            case 2: clickAndSend([0x1b, 0x5b, 0x41]) // k → up
+            case 3: clickAndSend([0x1b, 0x5b, 0x43]) // l → right
+            default: break
+            }
+        } else {
+            let chars: [UInt8] = [0x68, 0x6a, 0x6b, 0x6c] // h, j, k, l
+            guard btn.tag >= 0 && btn.tag < 4 else { return }
+            clickAndSend([chars[btn.tag]])
+        }
+    }
+
+    private func updateHJKLKeyButtons() {
+        let icons = ["arrow.left", "arrow.down", "arrow.up", "arrow.right"]
+        let titles = ["h", "j", "k", "l"]
+        for btn in hjklKeyButtons {
+            let idx = btn.tag
+            guard idx >= 0 && idx < 4 else { continue }
+            if hjklModifier {
+                btn.setTitle("", for: .normal)
+                let iconSize = UserDefaults.standard.object(forKey: "accessory_icon_size") as? Double ?? 9
+                if let img = UIImage(systemName: icons[idx], withConfiguration: UIImage.SymbolConfiguration(pointSize: iconSize)) {
+                    btn.setImage(img.withTintColor(terminalView?.buttonColor ?? .darkGray, renderingMode: .alwaysOriginal), for: .normal)
+                }
+            } else {
+                btn.setImage(nil, for: .normal)
+                btn.setTitle(titles[idx], for: .normal)
+            }
+        }
     }
 
     @objc func toggleTouch (_ sender: UIButton) {
@@ -319,6 +361,26 @@ public class TerminalAccessory: UIInputView, UIInputViewAudioFeedback {
         case "hjkl":
             let btn = makeButton("hjkl", #selector(hjklAction), isNormal: false)
             hjklButton = btn
+            return btn
+        case "hjklH":
+            let btn = makeButton("h", #selector(hjklKeyAction), isNormal: false)
+            btn.tag = 0
+            hjklKeyButtons.append(btn)
+            return btn
+        case "hjklJ":
+            let btn = makeButton("j", #selector(hjklKeyAction), isNormal: false)
+            btn.tag = 1
+            hjklKeyButtons.append(btn)
+            return btn
+        case "hjklK":
+            let btn = makeButton("k", #selector(hjklKeyAction), isNormal: false)
+            btn.tag = 2
+            hjklKeyButtons.append(btn)
+            return btn
+        case "hjklL":
+            let btn = makeButton("l", #selector(hjklKeyAction), isNormal: false)
+            btn.tag = 3
+            hjklKeyButtons.append(btn)
             return btn
         case "esc":
             return makeButton("⎋", #selector(esc), isNormal: false)
