@@ -226,7 +226,6 @@ public class TerminalAccessory: UIInputView, UIInputViewAudioFeedback {
             "tilde","colon","pipe","slash","dash",
             "f1","f2","f3","f4","f5","f6","f7","f8","f9","f10",
             "altLeft","altRight","home","end",
-            "arrowLeft","arrowDown","arrowUp","arrowRight",
             "touch","keyboard"
         ]
         
