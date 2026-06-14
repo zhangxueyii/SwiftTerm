@@ -43,6 +43,9 @@ public class TerminalAccessory: UIInputView, UIInputViewAudioFeedback {
     /// Called when the Commands key is tapped in the accessory bar.
     public var commandsHandler: (() -> Void)?
     
+    /// Called when the Overlay toggle key is tapped in the accessory bar.
+    public var overlayToggleHandler: (() -> Void)?
+    
     var views: [UIView] = []
     
     public init (frame: CGRect, inputViewStyle: UIInputView.Style, container: TerminalView)
@@ -195,6 +198,10 @@ public class TerminalAccessory: UIInputView, UIInputViewAudioFeedback {
         }
     }
 
+    @objc func overlayToggleAction (_ sender: AnyObject) {
+        overlayToggleHandler? ()
+    }
+
     @objc func toggleTouch (_ sender: UIButton) {
         terminalView?.allowMouseReporting.toggle()
         touchButton.isSelected = !(terminalView?.allowMouseReporting ?? false)
@@ -270,6 +277,8 @@ public class TerminalAccessory: UIInputView, UIInputViewAudioFeedback {
         switch keyId {
         case "commands":
             return makeButton("", #selector(commandsAction), icon: "terminal", isNormal: false)
+        case "overlay":
+            return makeButton("", #selector(overlayToggleAction), icon: "rectangle.on.rectangle", isNormal: false)
         case "esc":
             return makeButton("⎋", #selector(esc), isNormal: false)
         case "ctrl":
