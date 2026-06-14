@@ -40,6 +40,7 @@ public class TerminalAccessory: UIInputView, UIInputViewAudioFeedback {
     
     var touchButton: UIButton!
     var overlayButton: UIButton?
+    var hjklButton: UIButton?
     
     /// Called when the Commands key is tapped in the accessory bar.
     public var commandsHandler: (() -> Void)?
@@ -47,12 +48,27 @@ public class TerminalAccessory: UIInputView, UIInputViewAudioFeedback {
     /// Called when the Overlay toggle key is tapped in the accessory bar.
     public var overlayToggleHandler: (() -> Void)?
     
+    /// Called when the HJKL toggle key is tapped (single tap).
+    public var hjklHandler: (() -> Void)?
+    
+    /// Called when the HJKL key is double-tapped (toggle alt mode).
+    public var hjklAltHandler: (() -> Void)?
+    
     /// Tracks whether the overlay is currently shown; updates the button's selected state.
     public var showOverlay: Bool = false {
         didSet {
             overlayButton?.isSelected = showOverlay
         }
     }
+    
+    /// Tracks whether HJKL mode is on; updates the button's selected state.
+    public var hjklModifier: Bool = false {
+        didSet {
+            hjklButton?.isSelected = hjklModifier
+        }
+    }
+    
+    private var hjklTapWork: DispatchWorkItem?
     
     var views: [UIView] = []
     
@@ -210,6 +226,17 @@ public class TerminalAccessory: UIInputView, UIInputViewAudioFeedback {
         overlayToggleHandler? ()
     }
 
+    @objc func hjklAction (_ sender: AnyObject) {
+        hjklTapWork?.cancel()
+        hjklTapWork = DispatchWorkItem { [weak self] in
+            self?.hjklHandler? ()
+        }
+        if let w = hjklTapWork {
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.3, execute: w)
+        }
+        hjklAltHandler? ()
+    }
+
     @objc func toggleTouch (_ sender: UIButton) {
         terminalView?.allowMouseReporting.toggle()
         touchButton.isSelected = !(terminalView?.allowMouseReporting ?? false)
@@ -288,6 +315,10 @@ public class TerminalAccessory: UIInputView, UIInputViewAudioFeedback {
         case "overlay":
             let btn = makeButton("", #selector(overlayToggleAction), icon: "rectangle.on.rectangle", isNormal: false)
             overlayButton = btn
+            return btn
+        case "hjkl":
+            let btn = makeButton("hjkl", #selector(hjklAction), isNormal: false)
+            hjklButton = btn
             return btn
         case "esc":
             return makeButton("⎋", #selector(esc), isNormal: false)
