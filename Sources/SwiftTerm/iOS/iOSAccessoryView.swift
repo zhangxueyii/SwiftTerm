@@ -39,12 +39,20 @@ public class TerminalAccessory: UIInputView, UIInputViewAudioFeedback {
     }
     
     var touchButton: UIButton!
+    var overlayButton: UIButton?
     
     /// Called when the Commands key is tapped in the accessory bar.
     public var commandsHandler: (() -> Void)?
     
     /// Called when the Overlay toggle key is tapped in the accessory bar.
     public var overlayToggleHandler: (() -> Void)?
+    
+    /// Tracks whether the overlay is currently shown; updates the button's selected state.
+    public var showOverlay: Bool = false {
+        didSet {
+            overlayButton?.isSelected = showOverlay
+        }
+    }
     
     var views: [UIView] = []
     
@@ -278,7 +286,9 @@ public class TerminalAccessory: UIInputView, UIInputViewAudioFeedback {
         case "commands":
             return makeButton("", #selector(commandsAction), icon: "terminal", isNormal: false)
         case "overlay":
-            return makeButton("", #selector(overlayToggleAction), icon: "rectangle.on.rectangle", isNormal: false)
+            let btn = makeButton("", #selector(overlayToggleAction), icon: "rectangle.on.rectangle", isNormal: false)
+            overlayButton = btn
+            return btn
         case "esc":
             return makeButton("⎋", #selector(esc), isNormal: false)
         case "ctrl":
