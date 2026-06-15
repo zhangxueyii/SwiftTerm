@@ -648,9 +648,16 @@ public class TerminalAccessory: UIInputView, UIInputViewAudioFeedback {
         }
     }
 
+    private static let slideLogDF: DateFormatter = {
+        let f = DateFormatter()
+        f.dateFormat = "HH:mm:ss.SSS"
+        return f
+    }()
+
     private func sendSlideArrow(_ direction: String, alt: Bool) {
         let label = alt ? "alt" : "dir"
-        os_log(.debug, "[SlideButton] %{public}@ → %{public}@", label, direction)
+        let ts = Self.slideLogDF.string(from: Date())
+        os_log(.debug, "[%{public}@][SlideButton] %{public}@ → %{public}@", ts, label, direction)
         UIImpactFeedbackGenerator(style: .rigid).impactOccurred()
         if alt {
             switch direction {
