@@ -313,40 +313,84 @@ public class TerminalAccessory: UIInputView, UIInputViewAudioFeedback {
             "touch","keyboard"
         ]
         
-        let scrollView = UIScrollView()
-        scrollView.translatesAutoresizingMaskIntoConstraints = false
-        scrollView.showsHorizontalScrollIndicator = false
-        
-        let stack = UIStackView()
-        stack.translatesAutoresizingMaskIntoConstraints = false
-        stack.axis = .horizontal
-        stack.spacing = 2
-        stack.alignment = .center
-        stack.distribution = .fill
-        
         let buttonWidth = CGFloat(UserDefaults.standard.object(forKey: "accessory_button_width") as? Double ?? 26)
+        
+        // Top row: configurable accessory keys
+        let topScrollView = UIScrollView()
+        topScrollView.translatesAutoresizingMaskIntoConstraints = false
+        topScrollView.showsHorizontalScrollIndicator = false
+        
+        let topStack = UIStackView()
+        topStack.translatesAutoresizingMaskIntoConstraints = false
+        topStack.axis = .horizontal
+        topStack.spacing = 2
+        topStack.alignment = .center
+        topStack.distribution = .fill
+        
         for keyId in keyOrder {
             if let button = buildButton(for: keyId) {
                 button.widthAnchor.constraint(equalToConstant: buttonWidth).isActive = true
                 button.heightAnchor.constraint(equalToConstant: buttonWidth).isActive = true
-                stack.addArrangedSubview(button)
+                topStack.addArrangedSubview(button)
                 views.append(button)
             }
         }
         
-        scrollView.addSubview(stack)
-        addSubview(scrollView)
+        topScrollView.addSubview(topStack)
+        
+        // Bottom row: direction keys
+        let bottomScrollView = UIScrollView()
+        bottomScrollView.translatesAutoresizingMaskIntoConstraints = false
+        bottomScrollView.showsHorizontalScrollIndicator = false
+        
+        let bottomStack = UIStackView()
+        bottomStack.translatesAutoresizingMaskIntoConstraints = false
+        bottomStack.axis = .horizontal
+        bottomStack.spacing = 2
+        bottomStack.alignment = .center
+        bottomStack.distribution = .fill
+        
+        let dirKeyIds = ["arrowLeft", "arrowDown", "arrowUp", "arrowRight", "altLeft", "altRight", "home", "end"]
+        for keyId in dirKeyIds {
+            if let button = buildButton(for: keyId) {
+                button.widthAnchor.constraint(equalToConstant: buttonWidth).isActive = true
+                button.heightAnchor.constraint(equalToConstant: buttonWidth).isActive = true
+                bottomStack.addArrangedSubview(button)
+                views.append(button)
+            }
+        }
+        
+        bottomScrollView.addSubview(bottomStack)
+        
+        // Vertical container for both rows
+        let verticalStack = UIStackView()
+        verticalStack.translatesAutoresizingMaskIntoConstraints = false
+        verticalStack.axis = .vertical
+        verticalStack.spacing = 2
+        verticalStack.distribution = .fillEqually
+        
+        verticalStack.addArrangedSubview(topScrollView)
+        verticalStack.addArrangedSubview(bottomScrollView)
+        
+        addSubview(verticalStack)
         
         NSLayoutConstraint.activate([
-            scrollView.topAnchor.constraint(equalTo: topAnchor),
-            scrollView.leadingAnchor.constraint(equalTo: leadingAnchor),
-            scrollView.trailingAnchor.constraint(equalTo: trailingAnchor),
-            scrollView.bottomAnchor.constraint(equalTo: bottomAnchor),
-            stack.topAnchor.constraint(equalTo: scrollView.topAnchor),
-            stack.bottomAnchor.constraint(equalTo: scrollView.bottomAnchor),
-            stack.leadingAnchor.constraint(equalTo: scrollView.leadingAnchor, constant: 4),
-            stack.trailingAnchor.constraint(equalTo: scrollView.trailingAnchor, constant: -4),
-            stack.heightAnchor.constraint(equalTo: scrollView.heightAnchor)
+            verticalStack.topAnchor.constraint(equalTo: topAnchor),
+            verticalStack.bottomAnchor.constraint(equalTo: bottomAnchor),
+            verticalStack.leadingAnchor.constraint(equalTo: leadingAnchor),
+            verticalStack.trailingAnchor.constraint(equalTo: trailingAnchor),
+            
+            topStack.topAnchor.constraint(equalTo: topScrollView.topAnchor),
+            topStack.bottomAnchor.constraint(equalTo: topScrollView.bottomAnchor),
+            topStack.leadingAnchor.constraint(equalTo: topScrollView.leadingAnchor, constant: 4),
+            topStack.trailingAnchor.constraint(equalTo: topScrollView.trailingAnchor, constant: -4),
+            topStack.heightAnchor.constraint(equalTo: topScrollView.heightAnchor),
+            
+            bottomStack.topAnchor.constraint(equalTo: bottomScrollView.topAnchor),
+            bottomStack.bottomAnchor.constraint(equalTo: bottomScrollView.bottomAnchor),
+            bottomStack.leadingAnchor.constraint(equalTo: bottomScrollView.leadingAnchor, constant: 4),
+            bottomStack.trailingAnchor.constraint(equalTo: bottomScrollView.trailingAnchor, constant: -4),
+            bottomStack.heightAnchor.constraint(equalTo: bottomScrollView.heightAnchor),
         ])
     }
 
