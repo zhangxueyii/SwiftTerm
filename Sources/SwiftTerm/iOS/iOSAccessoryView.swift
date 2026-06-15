@@ -296,6 +296,13 @@ public class TerminalAccessory: UIInputView, UIInputViewAudioFeedback {
      * if you provide your own implementation, you are responsible for adding all the elements to the
      * this view, and flagging some of the public properties declared here.
      */
+    /// Force a full UI rebuild from UserDefaults settings.
+    /// Call this after changing accessory key order, second row visibility, etc.
+    public func refreshUI ()
+    {
+        setupUI()
+    }
+
     public func setupUI ()
     {
         for view in views {
@@ -314,6 +321,13 @@ public class TerminalAccessory: UIInputView, UIInputViewAudioFeedback {
         ]
         
         let buttonWidth = CGFloat(UserDefaults.standard.object(forKey: "accessory_button_width") as? Double ?? 26)
+        
+        let showSecondRow = UserDefaults.standard.object(forKey: "show_second_row") as? Bool ?? true
+        let savedSecondOrder = UserDefaults.standard.stringArray(forKey: "accessory_second_row_order")
+        let secondKeyIds = savedSecondOrder ?? [
+            "arrowLeft", "arrowDown", "arrowUp", "arrowRight",
+            "altLeft", "altRight", "home", "end"
+        ]
         
         // Top row: configurable accessory keys
         let topScrollView = UIScrollView()
@@ -338,60 +352,73 @@ public class TerminalAccessory: UIInputView, UIInputViewAudioFeedback {
         
         topScrollView.addSubview(topStack)
         
-        // Bottom row: direction keys
-        let bottomScrollView = UIScrollView()
-        bottomScrollView.translatesAutoresizingMaskIntoConstraints = false
-        bottomScrollView.showsHorizontalScrollIndicator = false
-        
-        let bottomStack = UIStackView()
-        bottomStack.translatesAutoresizingMaskIntoConstraints = false
-        bottomStack.axis = .horizontal
-        bottomStack.spacing = 2
-        bottomStack.alignment = .center
-        bottomStack.distribution = .fill
-        
-        let dirKeyIds = ["arrowLeft", "arrowDown", "arrowUp", "arrowRight", "altLeft", "altRight", "home", "end"]
-        for keyId in dirKeyIds {
-            if let button = buildButton(for: keyId) {
-                button.widthAnchor.constraint(equalToConstant: buttonWidth).isActive = true
-                button.heightAnchor.constraint(equalToConstant: buttonWidth).isActive = true
-                bottomStack.addArrangedSubview(button)
-                views.append(button)
+        if showSecondRow {
+            // Bottom row: configurable second row keys
+            let bottomScrollView = UIScrollView()
+            bottomScrollView.translatesAutoresizingMaskIntoConstraints = false
+            bottomScrollView.showsHorizontalScrollIndicator = false
+            
+            let bottomStack = UIStackView()
+            bottomStack.translatesAutoresizingMaskIntoConstraints = false
+            bottomStack.axis = .horizontal
+            bottomStack.spacing = 2
+            bottomStack.alignment = .center
+            bottomStack.distribution = .fill
+            
+            for keyId in secondKeyIds {
+                if let button = buildButton(for: keyId) {
+                    button.widthAnchor.constraint(equalToConstant: buttonWidth).isActive = true
+                    button.heightAnchor.constraint(equalToConstant: buttonWidth).isActive = true
+                    bottomStack.addArrangedSubview(button)
+                    views.append(button)
+                }
             }
+            
+            bottomScrollView.addSubview(bottomStack)
+            
+            let verticalStack = UIStackView()
+            verticalStack.translatesAutoresizingMaskIntoConstraints = false
+            verticalStack.axis = .vertical
+            verticalStack.spacing = 2
+            verticalStack.distribution = .fillEqually
+            
+            verticalStack.addArrangedSubview(topScrollView)
+            verticalStack.addArrangedSubview(bottomScrollView)
+            
+            addSubview(verticalStack)
+            
+            NSLayoutConstraint.activate([
+                verticalStack.topAnchor.constraint(equalTo: topAnchor),
+                verticalStack.bottomAnchor.constraint(equalTo: bottomAnchor),
+                verticalStack.leadingAnchor.constraint(equalTo: leadingAnchor),
+                verticalStack.trailingAnchor.constraint(equalTo: trailingAnchor),
+                
+                topStack.topAnchor.constraint(equalTo: topScrollView.topAnchor),
+                topStack.bottomAnchor.constraint(equalTo: topScrollView.bottomAnchor),
+                topStack.leadingAnchor.constraint(equalTo: topScrollView.leadingAnchor, constant: 4),
+                topStack.trailingAnchor.constraint(equalTo: topScrollView.trailingAnchor, constant: -4),
+                topStack.heightAnchor.constraint(equalTo: topScrollView.heightAnchor),
+                
+                bottomStack.topAnchor.constraint(equalTo: bottomScrollView.topAnchor),
+                bottomStack.bottomAnchor.constraint(equalTo: bottomScrollView.bottomAnchor),
+                bottomStack.leadingAnchor.constraint(equalTo: bottomScrollView.leadingAnchor, constant: 4),
+                bottomStack.trailingAnchor.constraint(equalTo: bottomScrollView.trailingAnchor, constant: -4),
+                bottomStack.heightAnchor.constraint(equalTo: bottomScrollView.heightAnchor),
+            ])
+        } else {
+            addSubview(topScrollView)
+            NSLayoutConstraint.activate([
+                topScrollView.topAnchor.constraint(equalTo: topAnchor),
+                topScrollView.bottomAnchor.constraint(equalTo: bottomAnchor),
+                topScrollView.leadingAnchor.constraint(equalTo: leadingAnchor),
+                topScrollView.trailingAnchor.constraint(equalTo: trailingAnchor),
+                topStack.topAnchor.constraint(equalTo: topScrollView.topAnchor),
+                topStack.bottomAnchor.constraint(equalTo: topScrollView.bottomAnchor),
+                topStack.leadingAnchor.constraint(equalTo: topScrollView.leadingAnchor, constant: 4),
+                topStack.trailingAnchor.constraint(equalTo: topScrollView.trailingAnchor, constant: -4),
+                topStack.heightAnchor.constraint(equalTo: topScrollView.heightAnchor),
+            ])
         }
-        
-        bottomScrollView.addSubview(bottomStack)
-        
-        // Vertical container for both rows
-        let verticalStack = UIStackView()
-        verticalStack.translatesAutoresizingMaskIntoConstraints = false
-        verticalStack.axis = .vertical
-        verticalStack.spacing = 2
-        verticalStack.distribution = .fillEqually
-        
-        verticalStack.addArrangedSubview(topScrollView)
-        verticalStack.addArrangedSubview(bottomScrollView)
-        
-        addSubview(verticalStack)
-        
-        NSLayoutConstraint.activate([
-            verticalStack.topAnchor.constraint(equalTo: topAnchor),
-            verticalStack.bottomAnchor.constraint(equalTo: bottomAnchor),
-            verticalStack.leadingAnchor.constraint(equalTo: leadingAnchor),
-            verticalStack.trailingAnchor.constraint(equalTo: trailingAnchor),
-            
-            topStack.topAnchor.constraint(equalTo: topScrollView.topAnchor),
-            topStack.bottomAnchor.constraint(equalTo: topScrollView.bottomAnchor),
-            topStack.leadingAnchor.constraint(equalTo: topScrollView.leadingAnchor, constant: 4),
-            topStack.trailingAnchor.constraint(equalTo: topScrollView.trailingAnchor, constant: -4),
-            topStack.heightAnchor.constraint(equalTo: topScrollView.heightAnchor),
-            
-            bottomStack.topAnchor.constraint(equalTo: bottomScrollView.topAnchor),
-            bottomStack.bottomAnchor.constraint(equalTo: bottomScrollView.bottomAnchor),
-            bottomStack.leadingAnchor.constraint(equalTo: bottomScrollView.leadingAnchor, constant: 4),
-            bottomStack.trailingAnchor.constraint(equalTo: bottomScrollView.trailingAnchor, constant: -4),
-            bottomStack.heightAnchor.constraint(equalTo: bottomScrollView.heightAnchor),
-        ])
     }
 
     func buildButton(for keyId: String) -> UIView? {
