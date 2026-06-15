@@ -643,6 +643,7 @@ public class TerminalAccessory: UIInputView, UIInputViewAudioFeedback {
     private func sendSlideArrow(_ direction: String, alt: Bool) {
         let label = alt ? "alt" : "dir"
         os_log(.debug, "[SlideButton] %{public}@ → %{public}@", label, direction)
+        UIImpactFeedbackGenerator(style: .rigid).impactOccurred()
         if alt {
             switch direction {
             case "up":    clickAndSend([0x1b, 0x4f, 0x48]) // Home
