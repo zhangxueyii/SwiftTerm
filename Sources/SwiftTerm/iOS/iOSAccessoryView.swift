@@ -41,7 +41,6 @@ public class TerminalAccessory: UIInputView, UIInputViewAudioFeedback {
     
     var touchButton: UIButton!
     var overlayButton: UIButton?
-    var hjklButton: UIButton?
     
     /// Called when the Commands key is tapped in the accessory bar.
     public var commandsHandler: (() -> Void)?
@@ -52,29 +51,12 @@ public class TerminalAccessory: UIInputView, UIInputViewAudioFeedback {
     private var slideTimer: Timer?
     private var slideLastDirection: String?
     
-    /// Called when the HJKL toggle key is tapped (single tap).
-    public var hjklHandler: (() -> Void)?
-    
-    /// Called when the HJKL key is double-tapped (toggle alt mode).
-    public var hjklAltHandler: (() -> Void)?
-    
     /// Tracks whether the overlay is currently shown; updates the button's selected state.
     public var showOverlay: Bool = false {
         didSet {
             overlayButton?.isSelected = showOverlay
         }
     }
-    
-    /// Tracks whether HJKL mode is on; updates the button's selected state.
-    public var hjklModifier: Bool = false {
-        didSet {
-            hjklButton?.isSelected = hjklModifier
-            updateHJKLKeyButtons()
-        }
-    }
-    
-    private var hjklTapWork: DispatchWorkItem?
-    private var hjklKeyButtons: [UIButton] = []
     
     var views: [UIView] = []
     
@@ -232,57 +214,6 @@ public class TerminalAccessory: UIInputView, UIInputViewAudioFeedback {
         overlayToggleHandler? ()
     }
 
-    @objc func hjklAction (_ sender: AnyObject) {
-        if let w = hjklTapWork {
-            w.cancel()
-            hjklTapWork = nil
-            hjklAltHandler? ()
-        } else {
-            hjklTapWork = DispatchWorkItem { [weak self] in
-                self?.hjklHandler? ()
-            }
-            if let w = hjklTapWork {
-                DispatchQueue.main.asyncAfter(deadline: .now() + 0.3, execute: w)
-            }
-        }
-    }
-
-    @objc func hjklKeyAction (_ sender: AnyObject) {
-        guard let btn = sender as? UIButton else { return }
-        if hjklModifier {
-            switch btn.tag {
-            case 0: clickAndSend([0x1b, 0x5b, 0x44]) // h → left
-            case 1: clickAndSend([0x1b, 0x5b, 0x42]) // j → down
-            case 2: clickAndSend([0x1b, 0x5b, 0x41]) // k → up
-            case 3: clickAndSend([0x1b, 0x5b, 0x43]) // l → right
-            default: break
-            }
-        } else {
-            let chars: [UInt8] = [0x68, 0x6a, 0x6b, 0x6c] // h, j, k, l
-            guard btn.tag >= 0 && btn.tag < 4 else { return }
-            clickAndSend([chars[btn.tag]])
-        }
-    }
-
-    private func updateHJKLKeyButtons() {
-        let icons = ["arrow.left", "arrow.down", "arrow.up", "arrow.right"]
-        let titles = ["h", "j", "k", "l"]
-        for btn in hjklKeyButtons {
-            let idx = btn.tag
-            guard idx >= 0 && idx < 4 else { continue }
-            if hjklModifier {
-                btn.setTitle("", for: .normal)
-                let iconSize = UserDefaults.standard.object(forKey: "accessory_icon_size") as? Double ?? 9
-                if let img = UIImage(systemName: icons[idx], withConfiguration: UIImage.SymbolConfiguration(pointSize: iconSize)) {
-                    btn.setImage(img.withTintColor(terminalView?.buttonColor ?? .darkGray, renderingMode: .alwaysOriginal), for: .normal)
-                }
-            } else {
-                btn.setImage(nil, for: .normal)
-                btn.setTitle(titles[idx], for: .normal)
-            }
-        }
-    }
-
     @objc func toggleTouch (_ sender: UIButton) {
         terminalView?.allowMouseReporting.toggle()
         touchButton.isSelected = !(terminalView?.allowMouseReporting ?? false)
@@ -437,32 +368,17 @@ public class TerminalAccessory: UIInputView, UIInputViewAudioFeedback {
             overlayButton = btn
             return btn
         case "dirSlide":
-            return makeSlideButton(title: "⬍", action: #selector(dirSlidePan(_:)))
+            return makeSlideButton(title: "", action: #selector(dirSlidePan(_:)), icon: "arrow.up.and.down.and.arrow.left.and.right")
         case "altDirSlide":
-            return makeSlideButton(title: "⌥", action: #selector(altDirSlidePan(_:)))
-        case "hjkl":
-            let btn = makeButton("hjkl", #selector(hjklAction), isNormal: false)
-            hjklButton = btn
-            return btn
-        case "hjklH":
-            let btn = makeButton("h", #selector(hjklKeyAction), isNormal: false)
-            btn.tag = 0
-            hjklKeyButtons.append(btn)
-            return btn
-        case "hjklJ":
-            let btn = makeButton("j", #selector(hjklKeyAction), isNormal: false)
-            btn.tag = 1
-            hjklKeyButtons.append(btn)
-            return btn
-        case "hjklK":
-            let btn = makeButton("k", #selector(hjklKeyAction), isNormal: false)
-            btn.tag = 2
-            hjklKeyButtons.append(btn)
-            return btn
-        case "hjklL":
-            let btn = makeButton("l", #selector(hjklKeyAction), isNormal: false)
-            btn.tag = 3
-            hjklKeyButtons.append(btn)
+            let btn = makeSlideButton(title: "", action: #selector(altDirSlidePan(_:)), icon: "arrow.up.and.down.and.arrow.left.and.right")
+            let orange = UIColor(red: 0.95, green: 0.6, blue: 0.1, alpha: 1.0)
+            btn.backgroundColor = orange
+            btn.color = orange
+            btn.layer.borderWidth = 0
+            if let img = UIImage(systemName: "arrow.up.and.down.and.arrow.left.and.right",
+                                 withConfiguration: UIImage.SymbolConfiguration(pointSize: UserDefaults.standard.object(forKey: "accessory_icon_size") as? Double ?? 9)) {
+                btn.setImage(img.withTintColor(.white, renderingMode: .alwaysOriginal), for: .normal)
+            }
             return btn
         case "esc":
             return makeButton("⎋", #selector(esc), isNormal: false)
@@ -540,7 +456,7 @@ public class TerminalAccessory: UIInputView, UIInputViewAudioFeedback {
         super.layoutSubviews()
     }
     
-    func makeSlideButton(title: String, action: Selector) -> UIButton {
+    func makeSlideButton(title: String, action: Selector, icon: String = "") -> UIButton {
         let b = BackgroundSelectedButton(type: .roundedRect)
         TerminalAccessory.styleButton(b)
         b.setTitle(title, for: .normal)
@@ -564,14 +480,22 @@ public class TerminalAccessory: UIInputView, UIInputViewAudioFeedback {
             b.layer.borderColor = UIColor.systemGray4.cgColor
             let pad = UserDefaults.standard.object(forKey: "accessory_padding") as? Double ?? 3
             b.contentEdgeInsets = UIEdgeInsets(top: pad, left: pad, bottom: pad, right: pad)
-            let isMultiChar = title.count > 2
-            let fontSize: CGFloat
-            if isMultiChar {
-                fontSize = UserDefaults.standard.object(forKey: "accessory_multi_char_font_size") as? Double ?? 9
+            let defaults = UserDefaults.standard
+            if icon != "" {
+                let iconSize = defaults.object(forKey: "accessory_icon_size") as? Double ?? 9
+                if let img = UIImage(systemName: icon, withConfiguration: UIImage.SymbolConfiguration(pointSize: iconSize)) {
+                    b.setImage(img.withTintColor(terminalView.buttonColor, renderingMode: .alwaysOriginal), for: .normal)
+                }
             } else {
-                fontSize = UserDefaults.standard.object(forKey: "accessory_single_char_font_size") as? Double ?? 12
+                let isMultiChar = title.count > 2
+                let fontSize: CGFloat
+                if isMultiChar {
+                    fontSize = defaults.object(forKey: "accessory_multi_char_font_size") as? Double ?? 9
+                } else {
+                    fontSize = defaults.object(forKey: "accessory_single_char_font_size") as? Double ?? 12
+                }
+                b.titleLabel?.font = UIFont.systemFont(ofSize: _useSmall ? max(fontSize - 1, 8) : fontSize)
             }
-            b.titleLabel?.font = UIFont.systemFont(ofSize: _useSmall ? max(fontSize - 1, 8) : fontSize)
         }
         let longPress = UILongPressGestureRecognizer(target: self, action: action)
         longPress.minimumPressDuration = 0
