@@ -373,7 +373,7 @@ public class TerminalAccessory: UIInputView, UIInputViewAudioFeedback {
             let btn = makeSlideButton(title: "", action: #selector(altDirSlidePan(_:)), icon: "arrow.up.and.down.and.arrow.left.and.right")
             let orange = UIColor(red: 0.95, green: 0.6, blue: 0.1, alpha: 1.0)
             btn.backgroundColor = orange
-            btn.color = orange
+            (btn as? BackgroundSelectedButton)?.color = orange
             btn.layer.borderWidth = 0
             if let img = UIImage(systemName: "arrow.up.and.down.and.arrow.left.and.right",
                                  withConfiguration: UIImage.SymbolConfiguration(pointSize: UserDefaults.standard.object(forKey: "accessory_icon_size") as? Double ?? 9)) {
