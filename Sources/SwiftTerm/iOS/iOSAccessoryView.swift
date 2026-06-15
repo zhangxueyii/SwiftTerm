@@ -9,6 +9,7 @@
 
 import Foundation
 import UIKit
+import os.log
 
 /**
  * This class provides an input accessory for the terminal on iOS, you can access this via the `inputAccessoryView`
@@ -640,6 +641,8 @@ public class TerminalAccessory: UIInputView, UIInputViewAudioFeedback {
     }
 
     private func sendSlideArrow(_ direction: String, alt: Bool) {
+        let label = alt ? "alt" : "dir"
+        os_log(.debug, "[SlideButton] %{public}@ → %{public}@", label, direction)
         if alt {
             switch direction {
             case "up":    clickAndSend([0x1b, 0x4f, 0x48]) // Home
