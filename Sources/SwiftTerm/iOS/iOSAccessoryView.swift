@@ -338,6 +338,7 @@ public class TerminalAccessory: UIInputView, UIInputViewAudioFeedback {
         let topScrollView = UIScrollView()
         topScrollView.translatesAutoresizingMaskIntoConstraints = false
         topScrollView.showsHorizontalScrollIndicator = false
+        topScrollView.delaysContentTouches = false
         
         let topStack = UIStackView()
         topStack.translatesAutoresizingMaskIntoConstraints = false
@@ -362,6 +363,7 @@ public class TerminalAccessory: UIInputView, UIInputViewAudioFeedback {
             let bottomScrollView = UIScrollView()
             bottomScrollView.translatesAutoresizingMaskIntoConstraints = false
             bottomScrollView.showsHorizontalScrollIndicator = false
+            bottomScrollView.delaysContentTouches = false
             
             let bottomStack = UIStackView()
             bottomStack.translatesAutoresizingMaskIntoConstraints = false
@@ -571,31 +573,35 @@ public class TerminalAccessory: UIInputView, UIInputViewAudioFeedback {
             }
             b.titleLabel?.font = UIFont.systemFont(ofSize: _useSmall ? max(fontSize - 1, 8) : fontSize)
         }
-        let pan = UIPanGestureRecognizer(target: self, action: action)
-        b.addGestureRecognizer(pan)
+        let longPress = UILongPressGestureRecognizer(target: self, action: action)
+        longPress.minimumPressDuration = 0
+        longPress.allowableMovement = CGFloat.greatestFiniteMagnitude
+        b.addGestureRecognizer(longPress)
         return b
     }
 
-    @objc private func dirSlidePan(_ gesture: UIPanGestureRecognizer) {
+    @objc private func dirSlidePan(_ gesture: UILongPressGestureRecognizer) {
         guard let btn = gesture.view as? UIButton else { return }
+        let threshold: CGFloat = 15
         switch gesture.state {
         case .began:
             btn.isHighlighted = true
             slideLastDirection = nil
             UIDevice.current.playInputClick()
         case .changed:
-            let translation = gesture.translation(in: btn)
-            let threshold: CGFloat = 15
+            let loc = gesture.location(in: btn)
+            let center = CGPoint(x: btn.bounds.midX, y: btn.bounds.midY)
+            let dx = loc.x - center.x
+            let dy = loc.y - center.y
             let dir: String?
-            if abs(translation.x) > abs(translation.y) {
-                dir = translation.x > threshold ? "right" : (translation.x < -threshold ? "left" : nil)
+            if abs(dx) > abs(dy) {
+                dir = dx > threshold ? "right" : (dx < -threshold ? "left" : nil)
             } else {
-                dir = translation.y > threshold ? "down" : (translation.y < -threshold ? "up" : nil)
+                dir = dy > threshold ? "down" : (dy < -threshold ? "up" : nil)
             }
             if let d = dir, d != slideLastDirection {
                 sendSlideArrow(d, alt: false)
                 slideLastDirection = d
-                gesture.setTranslation(.zero, in: btn)
                 startSlideRepeat(d, alt: false)
             }
         case .ended, .cancelled:
@@ -608,26 +614,28 @@ public class TerminalAccessory: UIInputView, UIInputViewAudioFeedback {
         }
     }
 
-    @objc private func altDirSlidePan(_ gesture: UIPanGestureRecognizer) {
+    @objc private func altDirSlidePan(_ gesture: UILongPressGestureRecognizer) {
         guard let btn = gesture.view as? UIButton else { return }
+        let threshold: CGFloat = 15
         switch gesture.state {
         case .began:
             btn.isHighlighted = true
             slideLastDirection = nil
             UIDevice.current.playInputClick()
         case .changed:
-            let translation = gesture.translation(in: btn)
-            let threshold: CGFloat = 15
+            let loc = gesture.location(in: btn)
+            let center = CGPoint(x: btn.bounds.midX, y: btn.bounds.midY)
+            let dx = loc.x - center.x
+            let dy = loc.y - center.y
             let dir: String?
-            if abs(translation.x) > abs(translation.y) {
-                dir = translation.x > threshold ? "right" : (translation.x < -threshold ? "left" : nil)
+            if abs(dx) > abs(dy) {
+                dir = dx > threshold ? "right" : (dx < -threshold ? "left" : nil)
             } else {
-                dir = translation.y > threshold ? "down" : (translation.y < -threshold ? "up" : nil)
+                dir = dy > threshold ? "down" : (dy < -threshold ? "up" : nil)
             }
             if let d = dir, d != slideLastDirection {
                 sendSlideArrow(d, alt: true)
                 slideLastDirection = d
-                gesture.setTranslation(.zero, in: btn)
                 startSlideRepeat(d, alt: true)
             }
         case .ended, .cancelled:
