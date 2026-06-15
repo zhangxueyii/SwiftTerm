@@ -48,6 +48,9 @@ public class TerminalAccessory: UIInputView, UIInputViewAudioFeedback {
     /// Called when the Overlay toggle key is tapped in the accessory bar.
     public var overlayToggleHandler: (() -> Void)?
     
+    private var slideTimer: Timer?
+    private var slideLastDirection: String?
+    
     /// Called when the HJKL toggle key is tapped (single tap).
     public var hjklHandler: (() -> Void)?
     
@@ -430,6 +433,10 @@ public class TerminalAccessory: UIInputView, UIInputViewAudioFeedback {
             let btn = makeButton("", #selector(overlayToggleAction), icon: "rectangle.on.rectangle", isNormal: false)
             overlayButton = btn
             return btn
+        case "dirSlide":
+            return makeSlideButton(title: "⬍", action: #selector(dirSlidePan(_:)))
+        case "altDirSlide":
+            return makeSlideButton(title: "⌥", action: #selector(altDirSlidePan(_:)))
         case "hjkl":
             let btn = makeButton("hjkl", #selector(hjklAction), isNormal: false)
             hjklButton = btn
@@ -530,6 +537,135 @@ public class TerminalAccessory: UIInputView, UIInputViewAudioFeedback {
         super.layoutSubviews()
     }
     
+    func makeSlideButton(title: String, action: Selector) -> UIButton {
+        let b = BackgroundSelectedButton(type: .roundedRect)
+        TerminalAccessory.styleButton(b)
+        b.setTitle(title, for: .normal)
+        if let terminalView {
+            b.color = UIColor.white
+            b.setTitleColor(UIColor.darkGray, for: .normal)
+            b.setTitleColor(UIColor.darkGray, for: .selected)
+            let useThemeBg = UserDefaults.standard.object(forKey: "accessory_use_theme_background") as? Bool ?? true
+            let bgColor: UIColor
+            if useThemeBg {
+                bgColor = terminalView.buttonBackgroundColor
+            } else if let bgData = UserDefaults.standard.object(forKey: "accessory_background_color_data") as? Data,
+                      let storedColor = try? NSKeyedUnarchiver.unarchivedObject(ofClass: UIColor.self, from: bgData) {
+                bgColor = storedColor
+            } else {
+                bgColor = UIColor.white
+            }
+            b.backgroundColor = bgColor
+            b.color = bgColor
+            b.layer.borderWidth = 1.0
+            b.layer.borderColor = UIColor.systemGray4.cgColor
+            let pad = UserDefaults.standard.object(forKey: "accessory_padding") as? Double ?? 3
+            b.contentEdgeInsets = UIEdgeInsets(top: pad, left: pad, bottom: pad, right: pad)
+            let isMultiChar = title.count > 2
+            let fontSize: CGFloat
+            if isMultiChar {
+                fontSize = UserDefaults.standard.object(forKey: "accessory_multi_char_font_size") as? Double ?? 9
+            } else {
+                fontSize = UserDefaults.standard.object(forKey: "accessory_single_char_font_size") as? Double ?? 12
+            }
+            b.titleLabel?.font = UIFont.systemFont(ofSize: _useSmall ? max(fontSize - 1, 8) : fontSize)
+        }
+        let pan = UIPanGestureRecognizer(target: self, action: action)
+        b.addGestureRecognizer(pan)
+        return b
+    }
+
+    @objc private func dirSlidePan(_ gesture: UIPanGestureRecognizer) {
+        guard let btn = gesture.view as? UIButton else { return }
+        switch gesture.state {
+        case .began:
+            btn.isHighlighted = true
+            slideLastDirection = nil
+            UIDevice.current.playInputClick()
+        case .changed:
+            let translation = gesture.translation(in: btn)
+            let threshold: CGFloat = 15
+            let dir: String?
+            if abs(translation.x) > abs(translation.y) {
+                dir = translation.x > threshold ? "right" : (translation.x < -threshold ? "left" : nil)
+            } else {
+                dir = translation.y > threshold ? "down" : (translation.y < -threshold ? "up" : nil)
+            }
+            if let d = dir, d != slideLastDirection {
+                sendSlideArrow(d, alt: false)
+                slideLastDirection = d
+                gesture.setTranslation(.zero, in: btn)
+                startSlideRepeat(d, alt: false)
+            }
+        case .ended, .cancelled:
+            btn.isHighlighted = false
+            slideTimer?.invalidate()
+            slideTimer = nil
+            slideLastDirection = nil
+        default:
+            break
+        }
+    }
+
+    @objc private func altDirSlidePan(_ gesture: UIPanGestureRecognizer) {
+        guard let btn = gesture.view as? UIButton else { return }
+        switch gesture.state {
+        case .began:
+            btn.isHighlighted = true
+            slideLastDirection = nil
+            UIDevice.current.playInputClick()
+        case .changed:
+            let translation = gesture.translation(in: btn)
+            let threshold: CGFloat = 15
+            let dir: String?
+            if abs(translation.x) > abs(translation.y) {
+                dir = translation.x > threshold ? "right" : (translation.x < -threshold ? "left" : nil)
+            } else {
+                dir = translation.y > threshold ? "down" : (translation.y < -threshold ? "up" : nil)
+            }
+            if let d = dir, d != slideLastDirection {
+                sendSlideArrow(d, alt: true)
+                slideLastDirection = d
+                gesture.setTranslation(.zero, in: btn)
+                startSlideRepeat(d, alt: true)
+            }
+        case .ended, .cancelled:
+            btn.isHighlighted = false
+            slideTimer?.invalidate()
+            slideTimer = nil
+            slideLastDirection = nil
+        default:
+            break
+        }
+    }
+
+    private func sendSlideArrow(_ direction: String, alt: Bool) {
+        if alt {
+            switch direction {
+            case "up":    clickAndSend([0x1b, 0x4f, 0x48]) // Home
+            case "down":  clickAndSend([0x1b, 0x4f, 0x46]) // End
+            case "left":  clickAndSend([0x1b, 0x62])       // Alt+Left
+            case "right": clickAndSend([0x1b, 0x66])       // Alt+Right
+            default: break
+            }
+        } else {
+            switch direction {
+            case "up":    clickAndSend([0x1b, 0x5b, 0x41]) // Up
+            case "down":  clickAndSend([0x1b, 0x5b, 0x42]) // Down
+            case "left":  clickAndSend([0x1b, 0x5b, 0x44]) // Left
+            case "right": clickAndSend([0x1b, 0x5b, 0x43]) // Right
+            default: break
+            }
+        }
+    }
+
+    private func startSlideRepeat(_ direction: String, alt: Bool) {
+        slideTimer?.invalidate()
+        slideTimer = Timer.scheduledTimer(withTimeInterval: 0.15, repeats: true) { [weak self] _ in
+            self?.sendSlideArrow(direction, alt: alt)
+        }
+    }
+
     func makeAutoRepeatButton (_ iconName: String, _ action: Selector) -> UIButton
     {
         let b = makeButton ("", action, icon: iconName)
