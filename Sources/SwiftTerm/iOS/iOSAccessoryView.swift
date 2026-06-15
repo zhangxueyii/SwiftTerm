@@ -381,7 +381,7 @@ public class TerminalAccessory: UIInputView, UIInputViewAudioFeedback {
             verticalStack.translatesAutoresizingMaskIntoConstraints = false
             verticalStack.axis = .vertical
             verticalStack.spacing = 2
-            verticalStack.distribution = .fillEqually
+            verticalStack.distribution = .fill
             
             verticalStack.addArrangedSubview(topScrollView)
             verticalStack.addArrangedSubview(bottomScrollView)
