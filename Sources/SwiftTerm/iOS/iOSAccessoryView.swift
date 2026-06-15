@@ -325,6 +325,7 @@ public class TerminalAccessory: UIInputView, UIInputViewAudioFeedback {
         let showSecondRow = UserDefaults.standard.object(forKey: "show_second_row") as? Bool ?? true
         let savedSecondOrder = UserDefaults.standard.stringArray(forKey: "accessory_second_row_order")
         let secondKeyIds = savedSecondOrder ?? [
+            "tab",
             "arrowLeft", "arrowDown", "arrowUp", "arrowRight",
             "altLeft", "altRight", "home", "end"
         ]
