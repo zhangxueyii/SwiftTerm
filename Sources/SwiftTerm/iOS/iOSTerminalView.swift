@@ -2786,8 +2786,10 @@ open class TerminalView: UIScrollView, UITextInputTraits, UIKeyInput, UIScrollVi
     open func mouseModeChanged(source: Terminal) {
         log.debug("[\(ts, privacy: .public)] mouseModeChanged: \(String(describing: source.mouseMode), privacy: .public)")
         if source.mouseMode != .off {
+            isScrollEnabled = false
             enableMousePanGesture()
         } else {
+            isScrollEnabled = true
             disableMousePanGesture()
         }
     }
