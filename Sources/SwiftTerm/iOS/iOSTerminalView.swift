@@ -58,7 +58,7 @@ public extension Notification.Name {
  * Use the `configureNativeColors()` to set the defaults colors for the view to match the OS
  * defaults, otherwise, this uses its own set of defaults colors.
  */
-open class TerminalView: UIScrollView, UITextInputTraits, UIKeyInput, UIScrollViewDelegate, TerminalDelegate, UIPointerInteractionDelegate {
+open class TerminalView: UIScrollView, UITextInputTraits, UIKeyInput, UIScrollViewDelegate, TerminalDelegate, UIPointerInteractionDelegate, UIGestureRecognizerDelegate {
     public static var textInputDebugEnabled: Bool = ProcessInfo.processInfo.environment["SWIFTTERM_TEXT_INPUT_DEBUG"] == "1"
     internal static var textInputLogCounter: Int = 0
 
@@ -907,16 +907,24 @@ open class TerminalView: UIScrollView, UITextInputTraits, UIKeyInput, UIScrollVi
     
     @objc func panMouseHandler (_ gestureRecognizer: UIPanGestureRecognizer){
         guard gestureRecognizer.view != nil else { return }
-        let allowMR = allowMouseReporting
-        let shiftBypass = shiftBypassesMouseReporting(for: gestureRecognizer)
-        let mmOn = terminal.mouseMode != .off
-        let isAlt = terminal.isDisplayBufferAlternate
         if gestureRecognizer.state == .began {
-            log.debug("[\(ts, privacy: .public)] panMouse.began allowMR=\(allowMR, privacy: .public) shiftBypass=\(shiftBypass, privacy: .public) mouseOn=\(mmOn, privacy: .public) isAlt=\(isAlt, privacy: .public)")
+            log.debug("[\(ts, privacy: .public)] panMouse.began allowMR=\(self.allowMouseReporting, privacy: .public) shiftBypass=\(self.shiftBypassesMouseReporting(for: gestureRecognizer), privacy: .public) mouseOn=\(self.terminal.mouseMode != .off, privacy: .public) isAlt=\(self.terminal.isDisplayBufferAlternate, privacy: .public)")
         }
-        if allowMR && !shiftBypass && mmOn {
-            handleAltBufferPan(gestureRecognizer)
+        handleAltBufferPan(gestureRecognizer)
+    }
+
+    public func gestureRecognizerShouldBegin(_ gestureRecognizer: UIGestureRecognizer) -> Bool {
+        if gestureRecognizer === panMouseGesture {
+            let mmOn = terminal.mouseMode != .off
+            let isAlt = terminal.isDisplayBufferAlternate
+            let shiftBypass = shiftBypassesMouseReporting(for: gestureRecognizer)
+            let allow = allowMouseReporting && !shiftBypass && (mmOn || isAlt)
+            if !allow {
+                log.debug("[\(ts, privacy: .public)] panMouse.shouldBegin=false mouseOn=\(mmOn, privacy: .public) isAlt=\(isAlt, privacy: .public)")
+            }
+            return allow
         }
+        return true
     }
 
     var altBufferPanAccumulator: CGFloat = 0
@@ -1092,6 +1100,12 @@ open class TerminalView: UIScrollView, UITextInputTraits, UIKeyInput, UIScrollVi
 
         singleTap.require(toFail: doubleTap)
         doubleTap.require(toFail: tripleTap)
+
+        let panMouse = UIPanGestureRecognizer (target: self, action: #selector(panMouseHandler))
+        panMouse.delegate = self
+        addGestureRecognizer(panMouse)
+        panGestureRecognizer.require(toFail: panMouse)
+        panMouseGesture = panMouse
     }
 
     func setupLinkReportingInteractions ()
@@ -2787,10 +2801,8 @@ open class TerminalView: UIScrollView, UITextInputTraits, UIKeyInput, UIScrollVi
         log.debug("[\(ts, privacy: .public)] mouseModeChanged: \(String(describing: source.mouseMode), privacy: .public)")
         if source.mouseMode != .off {
             isScrollEnabled = false
-            enableMousePanGesture()
         } else {
             isScrollEnabled = true
-            disableMousePanGesture()
         }
     }
     
