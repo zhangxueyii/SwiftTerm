@@ -1036,6 +1036,7 @@ open class TerminalView: UIScrollView, UITextInputTraits, UIKeyInput, UIScrollVi
         }
         let gesture = UIPanGestureRecognizer (target: self, action: #selector(panMouseHandler))
         addGestureRecognizer(gesture)
+        panGestureRecognizer.require(toFail: gesture)
         panMouseGesture = gesture
     }
     
