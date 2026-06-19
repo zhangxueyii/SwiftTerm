@@ -913,7 +913,7 @@ open class TerminalView: UIScrollView, UITextInputTraits, UIKeyInput, UIScrollVi
         handleAltBufferPan(gestureRecognizer)
     }
 
-    public func gestureRecognizerShouldBegin(_ gestureRecognizer: UIGestureRecognizer) -> Bool {
+    public override func gestureRecognizerShouldBegin(_ gestureRecognizer: UIGestureRecognizer) -> Bool {
         if gestureRecognizer === panMouseGesture {
             let mmOn = terminal.mouseMode != .off
             let isAlt = terminal.isDisplayBufferAlternate
