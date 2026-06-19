@@ -907,7 +907,14 @@ open class TerminalView: UIScrollView, UITextInputTraits, UIKeyInput, UIScrollVi
     
     @objc func panMouseHandler (_ gestureRecognizer: UIPanGestureRecognizer){
         guard gestureRecognizer.view != nil else { return }
-        if allowMouseReporting && !shiftBypassesMouseReporting(for: gestureRecognizer) && terminal.mouseMode != .off {
+        let allowMR = allowMouseReporting
+        let shiftBypass = shiftBypassesMouseReporting(for: gestureRecognizer)
+        let mmOn = terminal.mouseMode != .off
+        let isAlt = terminal.isDisplayBufferAlternate
+        if gestureRecognizer.state == .began {
+            log.debug("[\(ts, privacy: .public)] panMouse.began allowMR=\(allowMR, privacy: .public) shiftBypass=\(shiftBypass, privacy: .public) mouseOn=\(mmOn, privacy: .public) isAlt=\(isAlt, privacy: .public)")
+        }
+        if allowMR && !shiftBypass && mmOn {
             handleAltBufferPan(gestureRecognizer)
         }
     }
