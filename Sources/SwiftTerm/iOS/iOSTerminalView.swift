@@ -916,11 +916,10 @@ open class TerminalView: UIScrollView, UITextInputTraits, UIKeyInput, UIScrollVi
     public override func gestureRecognizerShouldBegin(_ gestureRecognizer: UIGestureRecognizer) -> Bool {
         if gestureRecognizer === panMouseGesture {
             let mmOn = terminal.mouseMode != .off
-            let isAlt = terminal.isDisplayBufferAlternate
             let shiftBypass = shiftBypassesMouseReporting(for: gestureRecognizer)
-            let allow = allowMouseReporting && !shiftBypass && (mmOn || isAlt)
+            let allow = allowMouseReporting && !shiftBypass && mmOn
             if !allow {
-                log.debug("[\(ts, privacy: .public)] panMouse.shouldBegin=false mouseOn=\(mmOn, privacy: .public) isAlt=\(isAlt, privacy: .public)")
+                log.debug("[\(ts, privacy: .public)] panMouse.shouldBegin=false mouseOn=\(mmOn, privacy: .public)")
             }
             return allow
         }
