@@ -908,27 +908,7 @@ open class TerminalView: UIScrollView, UITextInputTraits, UIKeyInput, UIScrollVi
     @objc func panMouseHandler (_ gestureRecognizer: UIPanGestureRecognizer){
         guard gestureRecognizer.view != nil else { return }
         if allowMouseReporting && !shiftBypassesMouseReporting(for: gestureRecognizer) && terminal.mouseMode != .off {
-            if terminal.isDisplayBufferAlternate {
-                handleAltBufferPan(gestureRecognizer)
-            } else {
-                switch gestureRecognizer.state {
-                case .began:
-                    if terminal.mouseMode.sendButtonPress() {
-                        sharedMouseEvent(gestureRecognizer: gestureRecognizer, release: false)
-                    }
-                case .ended, .cancelled:
-                    if terminal.mouseMode.sendButtonRelease() {
-                        sharedMouseEvent(gestureRecognizer: gestureRecognizer, release: true)
-                    }
-                case .changed:
-                    if terminal.mouseMode.sendButtonTracking() {
-                        let hit = calculateTapHit(gesture: gestureRecognizer)
-                        terminal.sendMotion(buttonFlags: encodeFlags(release: false), x: hit.grid.col, y: hit.grid.row, pixelX: hit.pixels.col, pixelY: hit.pixels.row)
-                    }
-                default:
-                    break
-                }
-            }
+            handleAltBufferPan(gestureRecognizer)
         }
     }
 
@@ -946,12 +926,12 @@ open class TerminalView: UIScrollView, UITextInputTraits, UIKeyInput, UIScrollVi
 
             while altBufferPanAccumulator < -threshold {
                 log.debug("[\(ts, privacy: .public)] handleAltBufferPan: sending pageUp")
-                pageUp()
+                send(EscapeSequences.cmdPageUp)
                 altBufferPanAccumulator += threshold
             }
             while altBufferPanAccumulator > threshold {
                 log.debug("[\(ts, privacy: .public)] handleAltBufferPan: sending pageDown")
-                pageDown()
+                send(EscapeSequences.cmdPageDown)
                 altBufferPanAccumulator -= threshold
             }
 
