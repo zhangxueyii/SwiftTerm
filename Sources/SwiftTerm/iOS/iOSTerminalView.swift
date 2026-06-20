@@ -938,14 +938,20 @@ open class TerminalView: UIScrollView, UITextInputTraits, UIKeyInput, UIScrollVi
 
             altBufferPanAccumulator += deltaY
 
+            let hit = calculateTapHit(gesture: gestureRecognizer)
+            let displayBuffer = terminal.displayBuffer
+            let screenRow = max(0, min(displayBuffer.rows - 1, hit.grid.row - displayBuffer.yDisp))
+
             while altBufferPanAccumulator < -threshold {
-                log.debug("[\(ts, privacy: .public)] handleAltBufferPan: sending pageUp")
-                send(EscapeSequences.cmdPageUp)
+                log.debug("[\(ts, privacy: .public)] handleAltBufferPan: sending scrollWheelUp")
+                let bf = terminal.encodeButton(button: 4, release: false, shift: false, meta: false, control: false)
+                terminal.sendEvent(buttonFlags: bf, x: hit.grid.col, y: screenRow, pixelX: hit.pixels.col, pixelY: hit.pixels.row)
                 altBufferPanAccumulator += threshold
             }
             while altBufferPanAccumulator > threshold {
-                log.debug("[\(ts, privacy: .public)] handleAltBufferPan: sending pageDown")
-                send(EscapeSequences.cmdPageDown)
+                log.debug("[\(ts, privacy: .public)] handleAltBufferPan: sending scrollWheelDown")
+                let bf = terminal.encodeButton(button: 5, release: false, shift: false, meta: false, control: false)
+                terminal.sendEvent(buttonFlags: bf, x: hit.grid.col, y: screenRow, pixelX: hit.pixels.col, pixelY: hit.pixels.row)
                 altBufferPanAccumulator -= threshold
             }
 
