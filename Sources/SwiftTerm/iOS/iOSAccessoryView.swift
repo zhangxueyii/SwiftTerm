@@ -45,8 +45,14 @@ public class TerminalAccessory: UIInputView, UIInputViewAudioFeedback {
     /// Called when the Commands key is tapped in the accessory bar.
     public var commandsHandler: (() -> Void)?
     
+    /// Called when the Key Combos key is tapped in the accessory bar.
+    public var keyCombosHandler: (() -> Void)?
+    
     /// Called when the Overlay toggle key is tapped in the accessory bar.
     public var overlayToggleHandler: (() -> Void)?
+
+    /// Called when a custom combo key is tapped. Receives the combo ID (e.g. "custom_<uuid>").
+    public var customComboHandler: ((String) -> Void)?
     
     private var slideTimer: Timer?
     private var slideLastDirection: String?
@@ -100,7 +106,19 @@ public class TerminalAccessory: UIInputView, UIInputViewAudioFeedback {
     }
     
     @objc func commandsAction (_ sender: AnyObject) {
+        UIImpactFeedbackGenerator(style: .rigid).impactOccurred()
         commandsHandler? ()
+    }
+
+    @objc func keyCombosAction (_ sender: AnyObject) {
+        UIImpactFeedbackGenerator(style: .rigid).impactOccurred()
+        keyCombosHandler? ()
+    }
+
+    @objc func customComboAction (_ sender: AnyObject) {
+        UIImpactFeedbackGenerator(style: .rigid).impactOccurred()
+        guard let btn = sender as? UIButton, let comboId = btn.accessibilityIdentifier else { return }
+        customComboHandler?(comboId)
     }
 
     @objc func esc (_ sender: AnyObject) { clickAndSend ([0x1b]) }
@@ -225,6 +243,9 @@ public class TerminalAccessory: UIInputView, UIInputViewAudioFeedback {
     @objc func endAction (_ sender: AnyObject) { clickAndSend ([0x1B, 0x5B, 0x46]) }
     @objc func altEnterAction (_ sender: AnyObject) { clickAndSend ([0x1B, 0x0D]) }
     @objc func ctrlCAction (_ sender: AnyObject) { clickAndSend ([0x03]) }
+    @objc func ctrlUAction (_ sender: AnyObject) { clickAndSend ([0x15]) }
+    @objc func ctrlXAction (_ sender: AnyObject) { clickAndSend ([0x18]) }
+    @objc func ctrlPAction (_ sender: AnyObject) { clickAndSend ([0x10]) }
 
     /**
      * This method setups the internal data structures to setup the UI shown on the accessory view,
@@ -248,7 +269,7 @@ public class TerminalAccessory: UIInputView, UIInputViewAudioFeedback {
         
         let savedOrder = UserDefaults.standard.stringArray(forKey: "accessory_key_order")
         let keyOrder = savedOrder ?? [
-            "commands","esc","altEnter","ctrlC","ctrl","alt","tab",
+            "commands","keyCombos","esc","altEnter","ctrlC","ctrlU","ctrlX","ctrlP","ctrl","alt","tab",
             "tilde","colon","pipe","slash","dash",
             "f1","f2","f3","f4","f5","f6","f7","f8","f9","f10",
             "altLeft","altRight","home","end",
@@ -274,7 +295,7 @@ public class TerminalAccessory: UIInputView, UIInputViewAudioFeedback {
         let topStack = UIStackView()
         topStack.translatesAutoresizingMaskIntoConstraints = false
         topStack.axis = .horizontal
-        topStack.spacing = 2
+        topStack.spacing = CGFloat(UserDefaults.standard.object(forKey: "accessory_button_spacing") as? Double ?? 2)
         topStack.alignment = .center
         topStack.distribution = .fill
         
@@ -299,7 +320,7 @@ public class TerminalAccessory: UIInputView, UIInputViewAudioFeedback {
             let bottomStack = UIStackView()
             bottomStack.translatesAutoresizingMaskIntoConstraints = false
             bottomStack.axis = .horizontal
-            bottomStack.spacing = 2
+            bottomStack.spacing = CGFloat(UserDefaults.standard.object(forKey: "accessory_button_spacing") as? Double ?? 2)
             bottomStack.alignment = .center
             bottomStack.distribution = .fill
             
@@ -317,7 +338,7 @@ public class TerminalAccessory: UIInputView, UIInputViewAudioFeedback {
             let verticalStack = UIStackView()
             verticalStack.translatesAutoresizingMaskIntoConstraints = false
             verticalStack.axis = .vertical
-            verticalStack.spacing = 2
+            verticalStack.spacing = CGFloat(UserDefaults.standard.object(forKey: "accessory_button_spacing") as? Double ?? 2)
             verticalStack.distribution = .fill
             
             verticalStack.addArrangedSubview(topScrollView)
@@ -363,6 +384,8 @@ public class TerminalAccessory: UIInputView, UIInputViewAudioFeedback {
         switch keyId {
         case "commands":
             return makeButton("", #selector(commandsAction), icon: "terminal", isNormal: false)
+        case "keyCombos":
+            return makeButton("", #selector(keyCombosAction), icon: "keyboard", isNormal: false)
         case "overlay":
             let btn = makeButton("", #selector(overlayToggleAction), icon: "rectangle.on.rectangle", isNormal: false)
             overlayButton = btn
@@ -429,6 +452,12 @@ public class TerminalAccessory: UIInputView, UIInputViewAudioFeedback {
             return makeButton("↩", #selector(altEnterAction))
         case "ctrlC":
             return makeButton("^C", #selector(ctrlCAction))
+        case "ctrlU":
+            return makeButton("^U", #selector(ctrlUAction))
+        case "ctrlX":
+            return makeButton("^X", #selector(ctrlXAction))
+        case "ctrlP":
+            return makeButton("^P", #selector(ctrlPAction))
         case "f1": return makeButton("F1", #selector(f1))
         case "f2": return makeButton("F2", #selector(f2))
         case "f3": return makeButton("F3", #selector(f3))
@@ -440,7 +469,74 @@ public class TerminalAccessory: UIInputView, UIInputViewAudioFeedback {
         case "f9": return makeButton("F9", #selector(f9))
         case "f10": return makeButton("F10", #selector(f10))
         default:
+            if keyId.hasPrefix("custom_") {
+                return buildCustomComboButton(for: keyId)
+            }
             return nil
+        }
+    }
+
+    func buildCustomComboButton(for keyId: String) -> UIView? {
+        guard let data = UserDefaults.standard.data(forKey: "custom_key_combos"),
+              let combos = try? JSONDecoder().decode([CustomComboPayload].self, from: data),
+              let combo = combos.first(where: { $0.id == keyId }) else {
+            return nil
+        }
+        let useSmall = self._useSmall
+        let defaults = UserDefaults.standard
+        let b = BackgroundSelectedButton(type: .roundedRect)
+        TerminalAccessory.styleButton(b)
+        b.setTitle(combo.title, for: .normal)
+        b.accessibilityIdentifier = keyId
+        b.addTarget(self, action: #selector(customComboAction), for: .touchDown)
+        if let terminalView {
+            b.color = UIColor.white
+            b.setTitleColor(UIColor.darkGray, for: .normal)
+            b.setTitleColor(UIColor.darkGray, for: .selected)
+            let useThemeBg = defaults.object(forKey: "accessory_use_theme_background") as? Bool ?? true
+            let bgColor: UIColor
+            if useThemeBg {
+                bgColor = terminalView.buttonBackgroundColor
+            } else if let bgData = defaults.object(forKey: "accessory_background_color_data") as? Data,
+                      let storedColor = try? NSKeyedUnarchiver.unarchivedObject(ofClass: UIColor.self, from: bgData) {
+                bgColor = storedColor
+            } else {
+                bgColor = UIColor.white
+            }
+            b.backgroundColor = bgColor
+            b.color = bgColor
+            b.layer.borderWidth = 1.0
+            b.layer.borderColor = UIColor.systemGray4.cgColor
+        }
+        let pad = defaults.object(forKey: "accessory_padding") as? Double ?? 3
+        b.contentEdgeInsets = UIEdgeInsets(top: pad, left: pad, bottom: pad, right: pad)
+        let isMultiChar = combo.title.count > 2
+        let fontSize: Double
+        if isMultiChar {
+            fontSize = defaults.object(forKey: "accessory_multi_char_font_size") as? Double ?? 9
+        } else {
+            fontSize = defaults.object(forKey: "accessory_single_char_font_size") as? Double ?? 12
+        }
+        b.titleLabel?.font = UIFont.systemFont(ofSize: useSmall ? max(fontSize - 1, 8) : fontSize)
+
+        return b
+    }
+
+    struct CustomComboPayload: Codable {
+        let id: String
+        var desc: String
+        var title: String {
+            tokens.map(\.rawValue).joined()
+        }
+        var tokens: [CustomComboToken]
+
+        enum CustomComboToken: String, Codable {
+            case ctrl = "^"
+            case alt = "Alt"
+            case shift = "Shift"
+            case a, b, c, d, e, f, g, h, i, j, k, l, m
+            case n, o, p, q, r, s, t, u, v, w, x, y, z
+            case space = "Space"
         }
     }
 
