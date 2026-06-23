@@ -561,21 +561,23 @@ open class TerminalView: UIScrollView, UITextInputTraits, UIKeyInput, UIScrollVi
         _ action: Selector,
         withSender sender: Any?
     ) -> Bool {
+        let result: Bool
         switch action {
         case #selector(copy(_:)):
-            return selection.active
+            result = selection.active
         case #selector(paste(_:)):
-            return true
+            result = true
         case #selector(select(_:)):
-            return !selection.active
+            result = !selection.active
         case #selector(selectAll(_:)):
-            return true
+            result = true
         case #selector(resetCmd(_:)):
-            return true
+            result = true
         default:
-            //print ("canPerformAction invoked for \(action)")
-            return false
+            result = false
         }
+        log.debug("[\(ts, privacy: .public)] canPerformAction action=\(action.description, privacy: .public) result=\(result, privacy: .public)")
+        return result
     }
     
     /// Shows the context menu for the terminal, the arguments play a key role:
@@ -598,6 +600,7 @@ open class TerminalView: UIScrollView, UITextInputTraits, UIKeyInput, UIScrollVi
         
         // Set the location of the menu in the view.
         //let menuLocation = CGRect (origin: at, size: CGSize (width: cellDimension.width, height: cellDimension.height))
+        log.debug("[\(ts, privacy: .public)] contextMenu.show region=\(forRegion.debugDescription, privacy: .public) isVisible=\(menuController.isMenuVisible, privacy: .public)")
         menuController.showMenu(from: self, rect: forRegion)
     }
     
@@ -622,8 +625,10 @@ open class TerminalView: UIScrollView, UITextInputTraits, UIKeyInput, UIScrollVi
     
     @objc func longPress (_ gestureRecognizer: UILongPressGestureRecognizer)
     {
+         log.debug("[\(ts, privacy: .public)] longPress state=\(gestureRecognizer.state.rawValue, privacy: .public) location=\(gestureRecognizer.location(in: gestureRecognizer.view).debugDescription, privacy: .public)")
          if gestureRecognizer.state == .began {
-             let _ = self.becomeFirstResponder()
+             let ok = self.becomeFirstResponder()
+             log.debug("[\(ts, privacy: .public)] longPress.becomeFirstResponder ok=\(ok, privacy: .public)")
              let tapLocation = gestureRecognizer.location(in: gestureRecognizer.view)
              let tapRegion = makeContextMenuRegionForTap (point: tapLocation)
              
@@ -760,15 +765,19 @@ open class TerminalView: UIScrollView, UITextInputTraits, UIKeyInput, UIScrollVi
                 if selection.active {
                     selection.selectNone()
                     disableSelectionPanGesture()
+                    log.debug("[\(ts, privacy: .public)] singleTap.selectionCleared")
                 }
                 if UIMenuController.shared.isMenuVisible {
+                    log.debug("[\(ts, privacy: .public)] singleTap.hideMenu")
                     UIMenuController.shared.hideMenu()
                 } else {
                     let location = gestureRecognizer.location(in: gestureRecognizer.view)
                     let tapLoc = calculateTapHit(gesture: gestureRecognizer).grid
                     let displayBuffer = terminal.displayBuffer
                     let cursorRow = displayBuffer.y + displayBuffer.yDisp
-                    if abs (tapLoc.col-displayBuffer.x) < 4 && abs (tapLoc.row - cursorRow) < 2 {
+                    let nearCursor = abs (tapLoc.col-displayBuffer.x) < 4 && abs (tapLoc.row - cursorRow) < 2
+                    log.debug("[\(ts, privacy: .public)] singleTap.showMenuCheck nearCursor=\(nearCursor, privacy: .public)")
+                    if nearCursor {
                         showContextMenu (forRegion: makeContextMenuRegionForTap (point: location), pos: tapLoc)
                     }
                 }
@@ -1111,6 +1120,8 @@ open class TerminalView: UIScrollView, UITextInputTraits, UIKeyInput, UIScrollVi
         addGestureRecognizer(panMouse)
         panGestureRecognizer.require(toFail: panMouse)
         panMouseGesture = panMouse
+
+        log.debug("[\(ts, privacy: .public)] setupGestures complete longPress=\(longPress.state.rawValue, privacy: .public) enabled=\(longPress.isEnabled, privacy: .public)")
     }
 
     func setupLinkReportingInteractions ()
@@ -1477,6 +1488,7 @@ open class TerminalView: UIScrollView, UITextInputTraits, UIKeyInput, UIScrollVi
     open func linefeed(source: Terminal) {
         // Preserve manual selection while output is streaming when mouse reporting is disabled.
         if allowMouseReporting {
+            log.debug("[\(ts, privacy: .public)] linefeed.selectNone")
             selection.selectNone()
             disableSelectionPanGesture()
         }
@@ -2784,9 +2796,12 @@ open class TerminalView: UIScrollView, UITextInputTraits, UIKeyInput, UIScrollVi
 #endif
             
             if !self.selection.active {
+                log.debug("[\(ts, privacy: .public)] selectionChanged.hideMenu active=\(self.selection.active, privacy: .public)")
                 UIMenuController.shared.hideMenu()
                 self.selection.selectNone()
                 self.disableSelectionPanGesture()
+            } else {
+                log.debug("[\(ts, privacy: .public)] selectionChanged.active selection=active")
             }
         }
     }
