@@ -106,12 +106,10 @@ public class TerminalAccessory: UIInputView, UIInputViewAudioFeedback {
     }
     
     @objc func commandsAction (_ sender: AnyObject) {
-        UIImpactFeedbackGenerator(style: .rigid).impactOccurred()
         commandsHandler? ()
     }
 
     @objc func keyCombosAction (_ sender: AnyObject) {
-        UIImpactFeedbackGenerator(style: .rigid).impactOccurred()
         keyCombosHandler? ()
     }
 
@@ -203,12 +201,12 @@ public class TerminalAccessory: UIInputView, UIInputViewAudioFeedback {
 
 
     @objc func toggleInputKeyboard (_ sender: UIButton) {
-        #if os(iOS)
-        UIDevice.current.playInputClick()
-        #endif
         guard let tv = terminalView else { return }
 
         if tv.inputView == nil {
+            #if os(iOS)
+            UIDevice.current.playInputClick()
+            #endif
             #if os(visionOS)
             tv.inputView = KeyboardView (frame: CGRect (origin: CGPoint.zero,
                                                         size: CGSize (width: 300,
@@ -348,7 +346,7 @@ public class TerminalAccessory: UIInputView, UIInputViewAudioFeedback {
             
             NSLayoutConstraint.activate([
                 verticalStack.topAnchor.constraint(equalTo: topAnchor),
-                verticalStack.bottomAnchor.constraint(equalTo: bottomAnchor),
+                verticalStack.bottomAnchor.constraint(equalTo: bottomAnchor, constant: -CGFloat(UserDefaults.standard.object(forKey: "accessory_bottom_gap") as? Double ?? 4)),
                 verticalStack.leadingAnchor.constraint(equalTo: leadingAnchor),
                 verticalStack.trailingAnchor.constraint(equalTo: trailingAnchor),
                 
@@ -368,7 +366,7 @@ public class TerminalAccessory: UIInputView, UIInputViewAudioFeedback {
             addSubview(topScrollView)
             NSLayoutConstraint.activate([
                 topScrollView.topAnchor.constraint(equalTo: topAnchor),
-                topScrollView.bottomAnchor.constraint(equalTo: bottomAnchor),
+                topScrollView.bottomAnchor.constraint(equalTo: bottomAnchor, constant: -CGFloat(UserDefaults.standard.object(forKey: "accessory_bottom_gap") as? Double ?? 4)),
                 topScrollView.leadingAnchor.constraint(equalTo: leadingAnchor),
                 topScrollView.trailingAnchor.constraint(equalTo: trailingAnchor),
                 topStack.topAnchor.constraint(equalTo: topScrollView.topAnchor),
