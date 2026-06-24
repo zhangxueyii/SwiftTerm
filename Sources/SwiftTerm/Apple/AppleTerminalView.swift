@@ -96,6 +96,11 @@ extension TerminalView {
     }
 #endif
 
+    /// Optional hook for the hosting app to capture diagnostic log messages.
+    /// Set from the app side (e.g. SSHLogger.event) so all SwiftTerm internal
+    /// diagnostics appear in the app's in-app log viewer.
+    public static var diagnosticLog: ((String) -> Void)?
+
     /// Multiplier for vertical line spacing. 1.0 = default (ascent + descent + leading).
     /// Set to 1.1 for 110% vertical spacing (matches iTerm2's vertical spacing setting).
     /// Triggers a font reset and terminal resize when changed.
@@ -207,7 +212,7 @@ extension TerminalView {
         let oldCols = terminal.cols
         
         if newCols != oldCols || newRows != oldRows {
-            NSLog("[processSizeChange] resize: \(oldCols)x\(oldRows) -> \(newCols)x\(newRows) size=\(newSize) cell=\(cellDimension)")
+            Self.diagnosticLog?("[processSizeChange] resize: \(oldCols)x\(oldRows) -> \(newCols)x\(newRows) size=\(newSize) cell=\(cellDimension)")
             selection.active = false
             terminal.resize (cols: newCols, rows: newRows)
             
@@ -1695,7 +1700,7 @@ extension TerminalView {
             }
             lastRenderedCursor = (x: buffer.x, y: buffer.yBase + buffer.y, hidden: terminal.cursorHidden)
             requestMetalDisplay()
-            NSLog("[updateDisplay] macOS path: dirtyRange=\(rowStart)-\(rowEnd) metalDirtyRange=\(metalDirtyRange?.description ?? "nil") rows=%d", terminal.rows)
+            Self.diagnosticLog?("[updateDisplay] macOS path: dirtyRange=\(rowStart)-\(rowEnd) metalDirtyRange=\(metalDirtyRange?.description ?? "nil") rows=\(terminal.rows)")
         } else {
             setNeedsDisplay(region)
         }
@@ -1711,7 +1716,7 @@ extension TerminalView {
             let buffer = terminal.displayBuffer
             lastRenderedCursor = (x: buffer.x, y: buffer.yBase + buffer.y, hidden: terminal.cursorHidden)
             requestMetalDisplay()
-            NSLog("[updateDisplay] iOS path: dirtyRange=\(rowStart)-\(rowEnd) metalDirtyRange=\(metalDirtyRange?.description ?? "nil") rows=%d isMain=%d", terminal.rows, Thread.isMainThread)
+            Self.diagnosticLog?("[updateDisplay] iOS path: dirtyRange=\(rowStart)-\(rowEnd) metalDirtyRange=\(metalDirtyRange?.description ?? "nil") rows=\(terminal.rows) isMain=\(Thread.isMainThread)")
         } else {
             setNeedsDisplay(bounds)
         }
@@ -1790,23 +1795,23 @@ extension TerminalView {
             let fpsDelay = fps60
             pendingDisplay = true
             SyncDebug.log("queue-scheduled (+16.67ms)")
-            NSLog("[queuePendingDisplay] scheduled rows=%d", terminal.rows)
+            Self.diagnosticLog?("[queuePendingDisplay] scheduled rows=\(terminal.rows)")
             DispatchQueue.main.asyncAfter(
                 deadline: DispatchTime (uptimeNanoseconds: DispatchTime.now().uptimeNanoseconds + UInt64 (fpsDelay)),
                 execute: updateDisplay)
         } else {
             SyncDebug.log("queue-noop (already pending)")
-            NSLog("[queuePendingDisplay] THROTTLED rows=%d pendingMetal=%d", terminal.rows, pendingMetalDisplay)
+            Self.diagnosticLog?("[queuePendingDisplay] THROTTLED rows=\(terminal.rows) pendingMetal=\(pendingMetalDisplay)")
         }
     }
 
 #if canImport(MetalKit)
     func requestMetalDisplay() {
         guard let metalView = metalView else {
-            NSLog("[requestMetalDisplay] SKIP no metalView")
+            Self.diagnosticLog?("[requestMetalDisplay] SKIP no metalView")
             return
         }
-        NSLog("[requestMetalDisplay] setNeedsDisplay bounds=\(metalView.bounds) isMain=%d", Thread.isMainThread)
+        Self.diagnosticLog?("[requestMetalDisplay] setNeedsDisplay bounds=\(metalView.bounds) isMain=\(Thread.isMainThread)")
         metalView.setNeedsDisplay(metalView.bounds)
     }
 
