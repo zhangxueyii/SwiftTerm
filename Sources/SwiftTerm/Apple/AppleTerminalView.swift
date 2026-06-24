@@ -203,8 +203,11 @@ extension TerminalView {
         }
         let newRows = Int (newSize.height / cellDimension.height)
         let newCols = Int (getEffectiveWidth (size: newSize) / cellDimension.width)
+        let oldRows = terminal.rows
+        let oldCols = terminal.cols
         
-        if newCols != terminal.cols || newRows != terminal.rows {
+        if newCols != oldCols || newRows != oldRows {
+            NSLog("[processSizeChange] resize: \(oldCols)x\(oldRows) -> \(newCols)x\(newRows) size=\(newSize) cell=\(cellDimension)")
             selection.active = false
             terminal.resize (cols: newCols, rows: newRows)
             
@@ -1692,6 +1695,7 @@ extension TerminalView {
             }
             lastRenderedCursor = (x: buffer.x, y: buffer.yBase + buffer.y, hidden: terminal.cursorHidden)
             requestMetalDisplay()
+            NSLog("[updateDisplay] macOS path: dirtyRange=\(rowStart)-\(rowEnd) metalDirtyRange=\(metalDirtyRange?.description ?? "nil") rows=%d", terminal.rows)
         } else {
             setNeedsDisplay(region)
         }
@@ -1707,6 +1711,7 @@ extension TerminalView {
             let buffer = terminal.displayBuffer
             lastRenderedCursor = (x: buffer.x, y: buffer.yBase + buffer.y, hidden: terminal.cursorHidden)
             requestMetalDisplay()
+            NSLog("[updateDisplay] iOS path: dirtyRange=\(rowStart)-\(rowEnd) metalDirtyRange=\(metalDirtyRange?.description ?? "nil") rows=%d isMain=%d", terminal.rows, Thread.isMainThread)
         } else {
             setNeedsDisplay(bounds)
         }
@@ -1785,19 +1790,23 @@ extension TerminalView {
             let fpsDelay = fps60
             pendingDisplay = true
             SyncDebug.log("queue-scheduled (+16.67ms)")
+            NSLog("[queuePendingDisplay] scheduled rows=%d", terminal.rows)
             DispatchQueue.main.asyncAfter(
                 deadline: DispatchTime (uptimeNanoseconds: DispatchTime.now().uptimeNanoseconds + UInt64 (fpsDelay)),
                 execute: updateDisplay)
         } else {
             SyncDebug.log("queue-noop (already pending)")
+            NSLog("[queuePendingDisplay] THROTTLED rows=%d pendingMetal=%d", terminal.rows, pendingMetalDisplay)
         }
     }
 
 #if canImport(MetalKit)
     func requestMetalDisplay() {
         guard let metalView = metalView else {
+            NSLog("[requestMetalDisplay] SKIP no metalView")
             return
         }
+        NSLog("[requestMetalDisplay] setNeedsDisplay bounds=\(metalView.bounds) isMain=%d", Thread.isMainThread)
         metalView.setNeedsDisplay(metalView.bounds)
     }
 

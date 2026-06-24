@@ -496,6 +496,11 @@ open class TerminalView: UIScrollView, UITextInputTraits, UIKeyInput, UIScrollVi
         updateDisplay()
     }
 
+    open override func setNeedsDisplay(_ invalidRect: CGRect) {
+        log.debug("setNeedsDisplay rect=\(invalidRect)")
+        super.setNeedsDisplay(invalidRect)
+    }
+
     func startDisplayUpdates()
     {
         link.isPaused = false
@@ -1577,6 +1582,7 @@ open class TerminalView: UIScrollView, UITextInputTraits, UIKeyInput, UIScrollVi
     }
 
     func requestDisplay() {
+        log.debug("requestDisplay bounds=\(bounds)")
 #if canImport(MetalKit)
         if useMetalRenderer {
             queueMetalDisplay()
@@ -1624,6 +1630,11 @@ open class TerminalView: UIScrollView, UITextInputTraits, UIKeyInput, UIScrollVi
         let currentBounds = bounds
         let sizeChanged = currentBounds.size != lastLayoutBounds.size
         let originChanged = currentBounds.origin != lastLayoutBounds.origin
+        let insetChanged = contentInset != lastLayoutInset
+
+        if sizeChanged || insetChanged {
+            log.debug("layoutSubviews bounds=\(currentBounds.size) sizeChanged=\(sizeChanged) inset=\(contentInset) insetChanged=\(insetChanged) rows=\(terminal.rows)")
+        }
 
         if sizeChanged {
             processSizeChange(newSize: currentBounds.size)
@@ -1632,8 +1643,10 @@ open class TerminalView: UIScrollView, UITextInputTraits, UIKeyInput, UIScrollVi
 
 #if canImport(MetalKit)
         if useMetalRenderer, let metalView = metalView {
-            metalView.frame = bounds
-            requestMetalDisplay()
+            if sizeChanged || insetChanged {
+                metalView.frame = bounds
+                requestMetalDisplay()
+            }
         } else {
 	    if sizeChanged || originChanged {
                 setNeedsDisplay(bounds)
@@ -1644,12 +1657,22 @@ open class TerminalView: UIScrollView, UITextInputTraits, UIKeyInput, UIScrollVi
             setNeedsDisplay(bounds)
 	}
 #endif
+        if insetChanged {
+            log.debug("layoutSubviews insetChanged old=\(lastLayoutInset) new=\(contentInset) sizeChanged=\(sizeChanged)")
+        }
 
         lastLayoutBounds = currentBounds
+        lastLayoutInset = contentInset
     }
+
+    private var lastLayoutInset: UIEdgeInsets = .zero
 
     open override var contentOffset: CGPoint {
         didSet {
+            let dy = abs(oldValue.y - contentOffset.y)
+            if dy > 1 {
+                log.debug("contentOffset.didSet old=\(oldValue.y) new=\(contentOffset.y) dy=\(dy)")
+            }
 #if canImport(MetalKit)
             if useMetalRenderer, metalView != nil {
                 requestMetalDisplay()
@@ -2381,6 +2404,7 @@ open class TerminalView: UIScrollView, UITextInputTraits, UIKeyInput, UIScrollVi
     
     open override func resignFirstResponder() -> Bool {
         let code = super.resignFirstResponder()
+        log.debug("resignFirstResponder code=\(code) bounds=\(bounds) inset=\(contentInset)")
         
         if code {
             terminal.setTerminalFocus(false)

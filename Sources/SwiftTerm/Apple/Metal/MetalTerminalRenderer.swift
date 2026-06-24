@@ -315,14 +315,20 @@ final class MetalTerminalRenderer: NSObject, MTKViewDelegate {
             }
         }
 #endif
+        let tvBounds = terminalView?.bounds ?? .zero
         if frameSemaphore.wait(timeout: .now()) != .success {
+            NSLog("[MetalRenderer.draw] SEMAPHORE CONTENTION - skip bounds=\(tvBounds.size) drawableWillChangeSize=\(view.drawableSize)")
             markPendingRedraw()
             return
         }
         guard let terminalView = terminalView else {
+            NSLog("[MetalRenderer.draw] SKIP no terminalView")
             frameSemaphore.signal()
             return
         }
+        let rows = terminalView.terminal.rows
+        let cols = terminalView.terminal.cols
+        NSLog("[MetalRenderer.draw] rows=\(rows) cols=\(cols) viewBounds=\(view.bounds.size) drawableSize=\(view.drawableSize) scale=\(scale)")
 #if os(macOS)
         rasterizer.fontSmoothing = terminalView.fontSmoothing
         let scale = terminalView.metalRenderingScaleFactor()
@@ -536,6 +542,7 @@ final class MetalTerminalRenderer: NSObject, MTKViewDelegate {
             os_signpost(.end, log: MetalTerminalRenderer.profileLog, name: "Metal.Commit", signpostID: commitID)
         }
 #endif
+        NSLog("[MetalRenderer] draw.complete rows=\(rows) drawableSize=\(view.drawableSize)")
     }
 
 
@@ -543,6 +550,7 @@ final class MetalTerminalRenderer: NSObject, MTKViewDelegate {
         redrawLock.lock()
         pendingRedraw = true
         redrawLock.unlock()
+        NSLog("[MetalRenderer] markPendingRedraw rows=%d", terminalView?.terminal.rows ?? -1)
     }
 
     private func consumePendingRedraw() -> Bool {
@@ -550,6 +558,9 @@ final class MetalTerminalRenderer: NSObject, MTKViewDelegate {
         let needsRedraw = pendingRedraw
         pendingRedraw = false
         redrawLock.unlock()
+        if needsRedraw {
+            NSLog("[MetalRenderer] consumePendingRedraw rows=%d", terminalView?.terminal.rows ?? -1)
+        }
         return needsRedraw
     }
 
