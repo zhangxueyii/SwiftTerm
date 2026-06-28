@@ -1504,9 +1504,10 @@ open class TerminalView: UIScrollView, UITextInputTraits, UIKeyInput, UIScrollVi
         let displayBuffer = terminal.displayBuffer
         contentSize = CGSize (width: CGFloat (displayBuffer.cols) * cellDimension.width,
                               height: CGFloat (displayBuffer.lines.count) * cellDimension.height)
-        let maxYDisp = max(0, displayBuffer.lines.count - displayBuffer.rows)
-        let yDisp = min(displayBuffer.yDisp, maxYDisp)
-        contentOffset = CGPoint (x: 0, y: CGFloat (yDisp) * cellDimension.height)
+        //contentOffset = CGPoint (x: 0, y: CGFloat (displayBuffer.lines.count-displayBuffer.rows)*cellDimension.height)
+        contentOffset = CGPoint (x: 0, y: CGFloat (displayBuffer.lines.count-displayBuffer.rows)*cellDimension.height)
+        //Xscroller.doubleValue = scrollPosition
+        //Xscroller.knobProportion = scrollThumbsize
     }
 
 #if canImport(MetalKit)
@@ -1551,9 +1552,7 @@ open class TerminalView: UIScrollView, UITextInputTraits, UIKeyInput, UIScrollVi
     open func scrollViewDidScroll(_ scrollView: UIScrollView) {
         guard userScrolling, contentSize.height > 0 else { return }
         let maxOffset = max(0, contentSize.height - bounds.height)
-        let newYDisp = min(Int(contentOffset.y / cellDimension.height), max(0, displayBuffer.lines.count - displayBuffer.rows))
-        terminal.displayBuffer.yDisp = newYDisp
-        log.info("[\(ts, privacy: .public)] scroll.didScroll offset=\(self.contentOffset.y) maxOffset=\(maxOffset) yDisp=\(newYDisp) userScrolling=\(self.userScrolling)")
+        log.info("[\(ts, privacy: .public)] scroll.didScroll offset=\(self.contentOffset.y) maxOffset=\(maxOffset) userScrolling=\(self.userScrolling)")
         if contentOffset.y >= maxOffset - 0.5 {
             log.info("[\(ts, privacy: .public)] scroll.reachedBottom")
             userScrolling = false
