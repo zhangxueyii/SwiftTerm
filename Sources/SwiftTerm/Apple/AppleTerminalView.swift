@@ -1198,6 +1198,7 @@ extension TerminalView {
         let cellHeight = cellDimension.height
         let firstRow = Int(contentOffset.y / cellHeight)
         let lastRow = firstRow + Int(ceil(bounds.height / cellHeight))
+        Self.diagnosticLog?("[draw] firstRow=\(firstRow) lastRow=\(lastRow) offsetY=\(contentOffset.y) lines=\(displayBuffer.lines.count) yDisp=\(displayBuffer.yDisp) yBase=\(displayBuffer.yBase) startIdx=\(displayBuffer.lines.getStartIndex()) userScrolling=\(self.userScrolling) termUserScrolling=\(terminal.userScrolling)")
         #else
         // On Mac, we are drawing the terminal buffer
         let cellHeight = cellDimension.height

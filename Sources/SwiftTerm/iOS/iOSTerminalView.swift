@@ -1485,7 +1485,7 @@ open class TerminalView: UIScrollView, UITextInputTraits, UIKeyInput, UIScrollVi
     }
 
     open func scrolled(source terminal: Terminal, yDisp: Int) {
-        //XselectionView.notifyScrolled(source: terminal)
+        Self.diagnosticLog?("[scrolled] yDisp=\(yDisp) lines=\(terminal.displayBuffer.lines.count) rows=\(terminal.displayBuffer.rows) userScrolling=\(self.userScrolling) terminal.userScrolling=\(terminal.userScrolling)")
         updateScroller()
         terminalDelegate?.scrolled(source: self, position: scrollPosition)
     }
@@ -1502,12 +1502,11 @@ open class TerminalView: UIScrollView, UITextInputTraits, UIKeyInput, UIScrollVi
     func updateScroller ()
     {
         let displayBuffer = terminal.displayBuffer
+        let targetRow = displayBuffer.lines.count - displayBuffer.rows
         contentSize = CGSize (width: CGFloat (displayBuffer.cols) * cellDimension.width,
                               height: CGFloat (displayBuffer.lines.count) * cellDimension.height)
-        //contentOffset = CGPoint (x: 0, y: CGFloat (displayBuffer.lines.count-displayBuffer.rows)*cellDimension.height)
-        contentOffset = CGPoint (x: 0, y: CGFloat (displayBuffer.lines.count-displayBuffer.rows)*cellDimension.height)
-        //Xscroller.doubleValue = scrollPosition
-        //Xscroller.knobProportion = scrollThumbsize
+        Self.diagnosticLog?("[updateScroller] lines=\(displayBuffer.lines.count) rows=\(displayBuffer.rows) yDisp=\(displayBuffer.yDisp) yBase=\(displayBuffer.yBase) targetRow=\(targetRow) userScrolling=\(self.userScrolling)")
+        contentOffset = CGPoint (x: 0, y: CGFloat (targetRow) * cellDimension.height)
     }
 
 #if canImport(MetalKit)
@@ -1552,7 +1551,9 @@ open class TerminalView: UIScrollView, UITextInputTraits, UIKeyInput, UIScrollVi
     open func scrollViewDidScroll(_ scrollView: UIScrollView) {
         guard userScrolling, contentSize.height > 0 else { return }
         let maxOffset = max(0, contentSize.height - bounds.height)
-        log.info("[\(ts, privacy: .public)] scroll.didScroll offset=\(self.contentOffset.y) maxOffset=\(maxOffset) userScrolling=\(self.userScrolling)")
+        let scrollYDisp = Int(contentOffset.y / cellDimension.height)
+        let modelYDisp = terminal.displayBuffer.yDisp
+        log.info("[\(ts, privacy: .public)] scroll.didScroll offset=\(self.contentOffset.y) maxOffset=\(maxOffset) yDisp=\(scrollYDisp) modelYDisp=\(modelYDisp) userScrolling=\(self.userScrolling)")
         if contentOffset.y >= maxOffset - 0.5 {
             log.info("[\(ts, privacy: .public)] scroll.reachedBottom")
             userScrolling = false
