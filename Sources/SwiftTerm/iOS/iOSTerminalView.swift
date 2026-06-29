@@ -930,11 +930,10 @@ open class TerminalView: UIScrollView, UITextInputTraits, UIKeyInput, UIScrollVi
     public override func gestureRecognizerShouldBegin(_ gestureRecognizer: UIGestureRecognizer) -> Bool {
         if gestureRecognizer === panMouseGesture {
             let mmOn = terminal.mouseMode != .off
+            let isAlt = terminal.isDisplayBufferAlternate
             let shiftBypass = shiftBypassesMouseReporting(for: gestureRecognizer)
-            let allow = allowMouseReporting && !shiftBypass && mmOn
-            if !allow {
-                log.debug("[\(ts, privacy: .public)] panMouse.shouldBegin=false mouseOn=\(mmOn, privacy: .public)")
-            }
+            let allow = allowMouseReporting && !shiftBypass && (mmOn || isAlt)
+            Self.diagnosticLog?("[panMouse.shouldBegin] allow=\(allow) mouseOn=\(mmOn) isAlt=\(isAlt) shiftBypass=\(shiftBypass)")
             return allow
         }
         return true
@@ -952,26 +951,20 @@ open class TerminalView: UIScrollView, UITextInputTraits, UIKeyInput, UIScrollVi
 
             altBufferPanAccumulator += deltaY
 
-            let hit = calculateTapHit(gesture: gestureRecognizer)
-            let displayBuffer = terminal.displayBuffer
-            let screenRow = max(0, min(displayBuffer.rows - 1, hit.grid.row - displayBuffer.yDisp))
-
             while altBufferPanAccumulator < -threshold {
-                let bf = terminal.encodeButton(button: 4, release: false, shift: false, meta: false, control: false)
-                log.debug("[\(ts, privacy: .public)] handleAltBufferPan: wheelUp bf=\(bf, privacy: .public) col=\(hit.grid.col, privacy: .public) row=\(screenRow, privacy: .public)")
-                terminal.sendEvent(buttonFlags: bf, x: hit.grid.col, y: screenRow, pixelX: hit.pixels.col, pixelY: hit.pixels.row)
+                Self.diagnosticLog?("[handleAltBufferPan] pageUp isAlt=\(terminal.isDisplayBufferAlternate) mouseOn=\(terminal.mouseMode != .off)")
+                pageUp()
                 altBufferPanAccumulator += threshold
             }
             while altBufferPanAccumulator > threshold {
-                let bf = terminal.encodeButton(button: 5, release: false, shift: false, meta: false, control: false)
-                log.debug("[\(ts, privacy: .public)] handleAltBufferPan: wheelDown bf=\(bf, privacy: .public) col=\(hit.grid.col, privacy: .public) row=\(screenRow, privacy: .public)")
-                terminal.sendEvent(buttonFlags: bf, x: hit.grid.col, y: screenRow, pixelX: hit.pixels.col, pixelY: hit.pixels.row)
+                Self.diagnosticLog?("[handleAltBufferPan] pageDown isAlt=\(terminal.isDisplayBufferAlternate) mouseOn=\(terminal.mouseMode != .off)")
+                pageDown()
                 altBufferPanAccumulator -= threshold
             }
 
         case .ended, .cancelled:
             if altBufferPanAccumulator != 0 {
-                log.debug("[\(ts, privacy: .public)] handleAltBufferPan: ended/cancelled, reset accumulator")
+                Self.diagnosticLog?("[handleAltBufferPan] ended/cancelled accumulator=\(altBufferPanAccumulator)")
             }
             altBufferPanAccumulator = 0
         default:
@@ -1657,6 +1650,8 @@ open class TerminalView: UIScrollView, UITextInputTraits, UIKeyInput, UIScrollVi
         if sizeChanged {
             processSizeChange(newSize: currentBounds.size)
             updateCursorPosition()
+            Self.diagnosticLog?("[layoutSubviews] calling updateScroller after sizeChange lines=\(terminal.displayBuffer.lines.count) rows=\(terminal.rows)")
+            updateScroller()
         }
 
 #if canImport(MetalKit)
