@@ -1502,11 +1502,13 @@ open class TerminalView: UIScrollView, UITextInputTraits, UIKeyInput, UIScrollVi
     func updateScroller ()
     {
         let displayBuffer = terminal.displayBuffer
-        let targetRow = displayBuffer.lines.count - displayBuffer.rows
+        let maxYDisp = max(0, displayBuffer.lines.count - displayBuffer.rows)
+        let yDisp = min(displayBuffer.yDisp, maxYDisp)
         contentSize = CGSize (width: CGFloat (displayBuffer.cols) * cellDimension.width,
                               height: CGFloat (displayBuffer.lines.count) * cellDimension.height)
-        Self.diagnosticLog?("[updateScroller] lines=\(displayBuffer.lines.count) rows=\(displayBuffer.rows) yDisp=\(displayBuffer.yDisp) yBase=\(displayBuffer.yBase) targetRow=\(targetRow) userScrolling=\(self.userScrolling)")
-        contentOffset = CGPoint (x: 0, y: CGFloat (targetRow) * cellDimension.height)
+        let newOffset = CGFloat (yDisp) * cellDimension.height
+        Self.diagnosticLog?("[updateScroller] lines=\(displayBuffer.lines.count) rows=\(displayBuffer.rows) yDisp=\(displayBuffer.yDisp) maxYDisp=\(maxYDisp) clampedYDisp=\(yDisp) offset=\(newOffset) userScrolling=\(self.userScrolling) termUserScrolling=\(terminal.userScrolling)")
+        contentOffset = CGPoint (x: 0, y: newOffset)
     }
 
 #if canImport(MetalKit)
@@ -1553,7 +1555,12 @@ open class TerminalView: UIScrollView, UITextInputTraits, UIKeyInput, UIScrollVi
         let maxOffset = max(0, contentSize.height - bounds.height)
         let scrollYDisp = Int(contentOffset.y / cellDimension.height)
         let modelYDisp = terminal.displayBuffer.yDisp
-        log.info("[\(ts, privacy: .public)] scroll.didScroll offset=\(self.contentOffset.y) maxOffset=\(maxOffset) yDisp=\(scrollYDisp) modelYDisp=\(modelYDisp) userScrolling=\(self.userScrolling)")
+        let maxYDisp = max(0, terminal.displayBuffer.lines.count - terminal.displayBuffer.rows)
+        let newYDisp = min(Int(contentOffset.y / cellDimension.height), maxYDisp)
+        if newYDisp != modelYDisp {
+            terminal.displayBuffer.yDisp = newYDisp
+        }
+        log.info("[\(ts, privacy: .public)] scroll.didScroll offset=\(self.contentOffset.y) maxOffset=\(maxOffset) yDisp=\(scrollYDisp) modelYDisp=\(modelYDisp) newYDisp=\(newYDisp) userScrolling=\(self.userScrolling)")
         if contentOffset.y >= maxOffset - 0.5 {
             log.info("[\(ts, privacy: .public)] scroll.reachedBottom")
             userScrolling = false
@@ -1622,7 +1629,9 @@ open class TerminalView: UIScrollView, UITextInputTraits, UIKeyInput, UIScrollVi
         context.scaleBy (x: 1, y: -1)
         context.translateBy(x: 0, y: -frame.height)
 
-        drawTerminalContents (dirtyRect: dirtyRect, context: context, bufferOffset: 0)
+        let drawBufferOffset = terminal.displayBuffer.yDisp
+        Self.diagnosticLog?("[drawCall] bufferOffset=\(drawBufferOffset) yDisp=\(terminal.displayBuffer.yDisp) dirtyRect=\(dirtyRect)")
+        drawTerminalContents (dirtyRect: dirtyRect, context: context, bufferOffset: drawBufferOffset)
     }
     open override func layoutSubviews() {
         super.layoutSubviews()
