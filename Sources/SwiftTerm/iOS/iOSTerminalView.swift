@@ -928,7 +928,7 @@ open class TerminalView: UIScrollView, UITextInputTraits, UIKeyInput, UIScrollVi
     @objc func panMouseHandler (_ gestureRecognizer: UIPanGestureRecognizer){
         guard gestureRecognizer.view != nil else { return }
         if gestureRecognizer.state == .began {
-            log.debug("[\(ts, privacy: .public)] panMouse.began allowMR=\(self.allowMouseReporting, privacy: .public) shiftBypass=\(self.shiftBypassesMouseReporting(for: gestureRecognizer), privacy: .public) mouseOn=\(self.terminal.mouseMode != .off, privacy: .public) isAlt=\(self.terminal.isDisplayBufferAlternate, privacy: .public)")
+            log.debug("[\(ts, privacy: .public)] panMouse.began allowMR=\(self.allowMouseReporting, privacy: .public) shiftBypass=\(self.shiftBypassesMouseReporting(for: gestureRecognizer), privacy: .public) mouseOn=\(self.terminal.mouseMode != .off, privacy: .public) isAlt=\(self.terminal.isDisplayBufferAlternate, privacy: .public) forceCapture=\(self.allowsScrollCapture, privacy: .public)")
         }
         handleAltBufferPan(gestureRecognizer)
     }
@@ -959,12 +959,12 @@ open class TerminalView: UIScrollView, UITextInputTraits, UIKeyInput, UIScrollVi
             altBufferPanAccumulator += deltaY
 
             while altBufferPanAccumulator < -threshold {
-                Self.diagnosticLog?("[handleAltBufferPan] pageUp isAlt=\(terminal.isDisplayBufferAlternate) mouseOn=\(terminal.mouseMode != .off)")
+                Self.diagnosticLog?("[handleAltBufferPan] pageUp isAlt=\(terminal.isDisplayBufferAlternate) mouseOn=\(terminal.mouseMode != .off) forceCapture=\(allowsScrollCapture)")
                 pageUp()
                 altBufferPanAccumulator += threshold
             }
             while altBufferPanAccumulator > threshold {
-                Self.diagnosticLog?("[handleAltBufferPan] pageDown isAlt=\(terminal.isDisplayBufferAlternate) mouseOn=\(terminal.mouseMode != .off)")
+                Self.diagnosticLog?("[handleAltBufferPan] pageDown isAlt=\(terminal.isDisplayBufferAlternate) mouseOn=\(terminal.mouseMode != .off) forceCapture=\(allowsScrollCapture)")
                 pageDown()
                 altBufferPanAccumulator -= threshold
             }
