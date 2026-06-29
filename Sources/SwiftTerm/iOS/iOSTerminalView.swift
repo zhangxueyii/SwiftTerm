@@ -1503,11 +1503,19 @@ open class TerminalView: UIScrollView, UITextInputTraits, UIKeyInput, UIScrollVi
     {
         let displayBuffer = terminal.displayBuffer
         let maxYDisp = max(0, displayBuffer.lines.count - displayBuffer.rows)
-        let yDisp = min(displayBuffer.yDisp, maxYDisp)
+        let targetYDisp: Int
+        if terminal.userScrolling || userScrolling {
+            targetYDisp = min(displayBuffer.yDisp, maxYDisp)
+        } else {
+            targetYDisp = maxYDisp
+        }
+        if targetYDisp != displayBuffer.yDisp {
+            displayBuffer.yDisp = targetYDisp
+        }
         contentSize = CGSize (width: CGFloat (displayBuffer.cols) * cellDimension.width,
                               height: CGFloat (displayBuffer.lines.count) * cellDimension.height)
-        let newOffset = CGFloat (yDisp) * cellDimension.height
-        Self.diagnosticLog?("[updateScroller] lines=\(displayBuffer.lines.count) rows=\(displayBuffer.rows) yDisp=\(displayBuffer.yDisp) maxYDisp=\(maxYDisp) clampedYDisp=\(yDisp) offset=\(newOffset) userScrolling=\(self.userScrolling) termUserScrolling=\(terminal.userScrolling)")
+        let newOffset = CGFloat (targetYDisp) * cellDimension.height
+        Self.diagnosticLog?("[updateScroller] lines=\(displayBuffer.lines.count) rows=\(displayBuffer.rows) yDisp=\(displayBuffer.yDisp) maxYDisp=\(maxYDisp) targetYDisp=\(targetYDisp) offset=\(newOffset) userScrolling=\(self.userScrolling) termUserScrolling=\(terminal.userScrolling)")
         contentOffset = CGPoint (x: 0, y: newOffset)
     }
 
