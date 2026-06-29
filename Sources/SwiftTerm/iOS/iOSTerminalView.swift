@@ -149,6 +149,12 @@ open class TerminalView: UIScrollView, UITextInputTraits, UIKeyInput, UIScrollVi
      */
     public var allowMouseReporting: Bool = true
 
+    /// When true, panMouseGesture captures scroll gestures regardless of
+    /// alternate-buffer or mouse-mode state. Used by Mosh connections where
+    /// the remote terminal manages its own scrollback and SwiftTerm never
+    /// receives alt-buffer escape sequences.
+    public var allowsScrollCapture: Bool = false
+
     /// Controls how link tracking resolves hovered links:
     /// `.explicit` = OSC 8 only, `.implicit` = explicit + implicit fallback, `.none` = off.
     public var linkReporting: LinkReporting = .implicit
@@ -932,8 +938,9 @@ open class TerminalView: UIScrollView, UITextInputTraits, UIKeyInput, UIScrollVi
             let mmOn = terminal.mouseMode != .off
             let isAlt = terminal.isDisplayBufferAlternate
             let shiftBypass = shiftBypassesMouseReporting(for: gestureRecognizer)
-            let allow = allowMouseReporting && !shiftBypass && (mmOn || isAlt)
-            Self.diagnosticLog?("[panMouse.shouldBegin] allow=\(allow) mouseOn=\(mmOn) isAlt=\(isAlt) shiftBypass=\(shiftBypass)")
+            let forceCapture = allowsScrollCapture
+            let allow = allowMouseReporting && !shiftBypass && (mmOn || isAlt || forceCapture)
+            Self.diagnosticLog?("[panMouse.shouldBegin] allow=\(allow) mouseOn=\(mmOn) isAlt=\(isAlt) forceCapture=\(forceCapture) shiftBypass=\(shiftBypass)")
             return allow
         }
         return true

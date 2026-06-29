@@ -1958,9 +1958,12 @@ extension TerminalView {
     /// Scrolls the content of the terminal one page up
     public func pageUp()
     {
-        if terminal.isDisplayBufferAlternate {
+        let forceCapture = allowsScrollCapture
+        if terminal.isDisplayBufferAlternate || forceCapture {
+            Self.diagnosticLog?("[pageUp] send isAlt=\(terminal.isDisplayBufferAlternate) forceCapture=\(forceCapture)")
             send (EscapeSequences.cmdPageUp)
         } else {
+            Self.diagnosticLog?("[pageUp] localScroll isAlt=\(terminal.isDisplayBufferAlternate) forceCapture=\(forceCapture)")
             scrollUp (lines: terminal.rows)
         }
     }
@@ -1968,9 +1971,12 @@ extension TerminalView {
     /// Scrolls the content of the terminal one page down
     public func pageDown ()
     {
-        if terminal.isDisplayBufferAlternate {
+        let forceCapture = allowsScrollCapture
+        if terminal.isDisplayBufferAlternate || forceCapture {
+            Self.diagnosticLog?("[pageDown] send isAlt=\(terminal.isDisplayBufferAlternate) forceCapture=\(forceCapture)")
             send (EscapeSequences.cmdPageDown)
         } else {
+            Self.diagnosticLog?("[pageDown] localScroll isAlt=\(terminal.isDisplayBufferAlternate) forceCapture=\(forceCapture)")
             scrollDown (lines: terminal.rows)
         }
     }
