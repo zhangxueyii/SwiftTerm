@@ -958,14 +958,20 @@ open class TerminalView: UIScrollView, UITextInputTraits, UIKeyInput, UIScrollVi
 
             altBufferPanAccumulator += deltaY
 
+            let hit = calculateTapHit(gesture: gestureRecognizer)
+            let displayBuffer = terminal.displayBuffer
+            let screenRow = max(0, min(displayBuffer.rows - 1, hit.grid.row - displayBuffer.yDisp))
+
             while altBufferPanAccumulator < -threshold {
-                Self.diagnosticLog?("[handleAltBufferPan] pageUp isAlt=\(terminal.isDisplayBufferAlternate) mouseOn=\(terminal.mouseMode != .off) forceCapture=\(allowsScrollCapture)")
-                pageUp()
+                Self.diagnosticLog?("[handleAltBufferPan] scrollWheelUp isAlt=\(terminal.isDisplayBufferAlternate) mouseOn=\(terminal.mouseMode != .off) forceCapture=\(allowsScrollCapture)")
+                let bf = terminal.encodeButton(button: 4, release: false, shift: false, meta: false, control: false)
+                terminal.sendEvent(buttonFlags: bf, x: hit.grid.col, y: screenRow, pixelX: hit.pixels.col, pixelY: hit.pixels.row)
                 altBufferPanAccumulator += threshold
             }
             while altBufferPanAccumulator > threshold {
-                Self.diagnosticLog?("[handleAltBufferPan] pageDown isAlt=\(terminal.isDisplayBufferAlternate) mouseOn=\(terminal.mouseMode != .off) forceCapture=\(allowsScrollCapture)")
-                pageDown()
+                Self.diagnosticLog?("[handleAltBufferPan] scrollWheelDown isAlt=\(terminal.isDisplayBufferAlternate) mouseOn=\(terminal.mouseMode != .off) forceCapture=\(allowsScrollCapture)")
+                let bf = terminal.encodeButton(button: 5, release: false, shift: false, meta: false, control: false)
+                terminal.sendEvent(buttonFlags: bf, x: hit.grid.col, y: screenRow, pixelX: hit.pixels.col, pixelY: hit.pixels.row)
                 altBufferPanAccumulator -= threshold
             }
 
