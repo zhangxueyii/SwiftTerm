@@ -39,6 +39,12 @@ public extension Notification.Name {
     static let terminalViewMetaModifierReset = Notification.Name("SwiftTerm.TerminalView.metaModifierReset")
 }
 
+/// Direction of a single scroll unit during an alt-buffer pan gesture.
+public enum AltBufferPanScrollUnit {
+    case up
+    case down
+}
+
 /**
  * TerminalView provides an AppKit/UIKit front-end to the `Terminal` terminal emulator.
  * It is up to a subclass to either wire the terminal emulator to a remote terminal
@@ -154,6 +160,12 @@ open class TerminalView: UIScrollView, UITextInputTraits, UIKeyInput, UIScrollVi
     /// the remote terminal manages its own scrollback and SwiftTerm never
     /// receives alt-buffer escape sequences.
     public var allowsScrollCapture: Bool = false
+
+    /// If set, called for each scroll unit during an alt-buffer pan gesture.
+    /// Return `true` to indicate the scroll was handled and prevent the
+    /// default mouse-event behavior (`encodeButton` + `sendEvent`).
+    /// When `nil`, the default mouse-event behavior is used.
+    public var onAltBufferPanScrollUnit: ((TerminalView, AltBufferPanScrollUnit) -> Bool)?
 
     /// Controls how link tracking resolves hovered links:
     /// `.explicit` = OSC 8 only, `.implicit` = explicit + implicit fallback, `.none` = off.
@@ -964,14 +976,18 @@ open class TerminalView: UIScrollView, UITextInputTraits, UIKeyInput, UIScrollVi
 
             while altBufferPanAccumulator < -threshold {
                 Self.diagnosticLog?("[handleAltBufferPan] scrollWheelUp isAlt=\(terminal.isDisplayBufferAlternate) mouseOn=\(terminal.mouseMode != .off) forceCapture=\(allowsScrollCapture)")
-                let bf = terminal.encodeButton(button: 4, release: false, shift: false, meta: false, control: false)
-                terminal.sendEvent(buttonFlags: bf, x: hit.grid.col, y: screenRow, pixelX: hit.pixels.col, pixelY: hit.pixels.row)
+                if onAltBufferPanScrollUnit?(self, .up) != true {
+                    let bf = terminal.encodeButton(button: 4, release: false, shift: false, meta: false, control: false)
+                    terminal.sendEvent(buttonFlags: bf, x: hit.grid.col, y: screenRow, pixelX: hit.pixels.col, pixelY: hit.pixels.row)
+                }
                 altBufferPanAccumulator += threshold
             }
             while altBufferPanAccumulator > threshold {
                 Self.diagnosticLog?("[handleAltBufferPan] scrollWheelDown isAlt=\(terminal.isDisplayBufferAlternate) mouseOn=\(terminal.mouseMode != .off) forceCapture=\(allowsScrollCapture)")
-                let bf = terminal.encodeButton(button: 5, release: false, shift: false, meta: false, control: false)
-                terminal.sendEvent(buttonFlags: bf, x: hit.grid.col, y: screenRow, pixelX: hit.pixels.col, pixelY: hit.pixels.row)
+                if onAltBufferPanScrollUnit?(self, .down) != true {
+                    let bf = terminal.encodeButton(button: 5, release: false, shift: false, meta: false, control: false)
+                    terminal.sendEvent(buttonFlags: bf, x: hit.grid.col, y: screenRow, pixelX: hit.pixels.col, pixelY: hit.pixels.row)
+                }
                 altBufferPanAccumulator -= threshold
             }
 
