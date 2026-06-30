@@ -494,7 +494,7 @@ open class Terminal {
     // The mouse coordinates can be encoded in a number of ways, and obey to historical
     // upgrades to the protocol, but also attempts at fixing limitations of the different
     // encodings.
-    enum MouseProtocolEncoding {
+    public enum MouseProtocolEncoding {
         // The default x10 mode is limited to coordinates up to 223.
         // (255-32).   The other modes solve this limitaion
         case x10
@@ -515,7 +515,7 @@ open class Terminal {
     }
     
     // The protocol encoding for the terminal
-    private var mouseProtocol: MouseProtocolEncoding = .x10
+    public private(set) var mouseProtocol: MouseProtocolEncoding = .x10
 
     // This is used to track if we are setting the colors, to prevent a
     // recursive invocation (nativeForegroundColor sets the terminal
@@ -4176,18 +4176,14 @@ open class Terminal {
                 mouseMode = .off
             case 1004: // send focusin/focusout events
                 sendFocus = false
-            case 1005: // utf8 ext mode mouse
+            case 1005: // utf8 ext mode mouse (protocol only, does not disable tracking)
                 mouseProtocol = .x10
-                mouseMode = .off
-            case 1006: // sgr ext mode mouse
+            case 1006: // sgr ext mode mouse (protocol only, does not disable tracking)
                 mouseProtocol = .x10
-                mouseMode = .off
-            case 1015: // urxvt ext mode mouse
+            case 1015: // urxvt ext mode mouse (protocol only, does not disable tracking)
                 mouseProtocol = .x10
-                mouseMode = .off
-            case 1016: // sgrPixel mode
+            case 1016: // sgrPixel mode (protocol only, does not disable tracking)
                 mouseProtocol = .x10
-                mouseMode = .off
             case 25: // hide cursor
                 hideCursor ()
             case 1048: // alt screen cursor
