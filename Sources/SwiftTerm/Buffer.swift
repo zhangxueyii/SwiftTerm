@@ -484,10 +484,13 @@ public final class Buffer {
 
             // Make sure that the cursor stays on screen
             x = min (x, newCols - 1)
+            let yBeforeAdd = y
+            let addToYValue = addToY
             y = min (y, newRows - 1)
             if addToY != 0 {
                 y += addToY
             }
+            TerminalView.diagnosticLog?("[Buffer.resize] oldRows=\(rows) newRows=\(newRows) oldYBase=\(yBase) yBefore=\(yBeforeAdd) addToY=\(addToYValue) yAfter=\(y) yBaseAfter=\(yBase) lines=\(lines.count)")
 
             savedX = min (savedX, newCols - 1)
 

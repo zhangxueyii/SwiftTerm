@@ -1592,6 +1592,9 @@ open class Terminal {
     {
         let buffer = self.buffer
         let by = buffer.y
+        let yBeforeLF = buffer.y
+        let yBaseBeforeLF = buffer.yBase
+        let scrollBottomBeforeLF = buffer.scrollBottom
         
         let canScroll = !marginMode || (buffer.x >= buffer.marginLeft && buffer.x <= buffer.marginRight)
         if by == buffer.scrollBottom {
@@ -1602,7 +1605,11 @@ open class Terminal {
         } else {
                 buffer.y = by + 1
         }
-        
+
+        if yBeforeLF == scrollBottomBeforeLF || buffer.y == rows - 1 {
+            TerminalView.diagnosticLog?("[LF.bottom] yBefore=\(yBeforeLF) yAfter=\(buffer.y) yBase=\(buffer.yBase) yBaseBefore=\(yBaseBeforeLF) scrollBottom=\(buffer.scrollBottom) rows=\(rows) canScroll=\(canScroll) marginMode=\(marginMode) x=\(buffer.x) cols=\(cols)")
+        }
+
         // If the end of the line is hit, prevent this action from wrapping around to the next line.
         if buffer.x >= cols {
             buffer.x -= 1
