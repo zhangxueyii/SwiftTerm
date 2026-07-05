@@ -5931,6 +5931,37 @@ open class Terminal {
         }
     }
     
+    /// DIAG: returns a one-line summary of buffer state + visible rows for diagnostic logging.
+    public func getBufferDumpForDiagnostics (maxColLen: Int = 60) -> String
+    {
+        let buf = displayBuffer
+        let yBase = buf.yBase
+        let yDisp = buf.yDisp
+        let cursorY = buf.y
+        let rows = self.rows
+        let linesCount = buf.lines.count
+        var summary = "yBase=\(yBase) yDisp=\(yDisp) cursorY=\(cursorY) rows=\(rows) lines=\(linesCount) cursorAbs=\(yBase + cursorY)"
+        let absCursor = yBase + cursorY
+        let dumpStart = max(0, yBase - 20)
+        let dumpEnd = min(buf.lines.count, yBase + rows)
+        if dumpStart > 0 {
+            summary += " | ...(rows 0..\(dumpStart-1) elided)"
+        }
+        for row in dumpStart..<dumpEnd {
+            let line = buf.lines[row]
+            let text = line.translateToString(trimRight: true)
+            let truncated = text.count > maxColLen ? String(text.prefix(maxColLen)) + "..." : text
+            let isInScreen = (row >= yBase && row < yBase + rows)
+            let isCursor = (row == absCursor)
+            var marker = ""
+            if isCursor { marker += "<CURSOR>" }
+            if !isInScreen { marker += "<SCROLLBACK>" }
+            let tag = marker.isEmpty ? "" : " " + marker
+            summary += " | [r\(row)]\"\(truncated)\"\(tag)"
+        }
+        return summary
+    }
+
     /// Returns the contents of the specified terminal buffer encoded as UTF8 in the provided Data buffer
     /// - Parameter kind: which buffer to retrive the data for
     /// - Parameter encoding: which encoding to use for the returned value, defaults to utf8
