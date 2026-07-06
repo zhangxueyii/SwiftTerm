@@ -343,6 +343,7 @@ open class TerminalView: UIScrollView, UITextInputTraits, UIKeyInput, UIScrollVi
           
     func setup()
     {
+        delegate = self
         showsHorizontalScrollIndicator = true
         indicatorStyle = .white
         
