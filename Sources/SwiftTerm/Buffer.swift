@@ -47,13 +47,7 @@ public final class Buffer {
     public var yDisp: Int {
         get { return _yDisp }
         set {
-            if _yDisp < 0 {
-                #if DEBUG
-                abort()
-                #else
-                return
-                #endif
-            }
+            guard newValue >= 0 else { return }
             _yDisp = newValue
         }
     }

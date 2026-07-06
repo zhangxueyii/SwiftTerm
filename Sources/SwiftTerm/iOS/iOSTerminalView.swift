@@ -1587,7 +1587,7 @@ open class TerminalView: UIScrollView, UITextInputTraits, UIKeyInput, UIScrollVi
         let scrollYDisp = Int(contentOffset.y / cellDimension.height)
         let modelYDisp = terminal.displayBuffer.yDisp
         let maxYDisp = max(0, terminal.displayBuffer.lines.count - terminal.displayBuffer.rows)
-        let newYDisp = min(Int(contentOffset.y / cellDimension.height), maxYDisp)
+        let newYDisp = max(0, min(Int(contentOffset.y / cellDimension.height), maxYDisp))
         if newYDisp != modelYDisp {
             terminal.displayBuffer.yDisp = newYDisp
         }
