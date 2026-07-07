@@ -1660,9 +1660,8 @@ open class TerminalView: UIScrollView, UITextInputTraits, UIKeyInput, UIScrollVi
         context.scaleBy (x: 1, y: -1)
         context.translateBy(x: 0, y: -frame.height)
 
-        let drawBufferOffset = terminal.displayBuffer.yDisp
-        Self.diagnosticLog?("[drawCall] bufferOffset=\(drawBufferOffset) yDisp=\(terminal.displayBuffer.yDisp) dirtyRect=\(dirtyRect)")
-        drawTerminalContents (dirtyRect: dirtyRect, context: context, bufferOffset: drawBufferOffset)
+        Self.diagnosticLog?("[drawCall] yDisp=\(terminal.displayBuffer.yDisp) dirtyRect=\(dirtyRect)")
+        drawTerminalContents (dirtyRect: dirtyRect, context: context, bufferOffset: 0)
     }
     open override func layoutSubviews() {
         super.layoutSubviews()
